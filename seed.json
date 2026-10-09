@@ -1,0 +1,9 @@
+{
+  "habit_templates": [
+    {"name": "Drink 2L of water", "cadence": "daily"},
+    {"name": "Read 20 minutes", "cadence": "daily"},
+    {"name": "Meditate", "cadence": "daily"},
+    {"name": "Go for a run", "cadence": "weekly"},
+    {"name": "Weekly review", "cadence": "weekly"}
+  ]
+}
