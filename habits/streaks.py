@@ -16,4 +16,27 @@ def current_daily_streak(checkin_dates, today):
     return streak
 
 
-# TODO: current_weekly_streak(checkin_dates, today) for cadence='weekly'
+def _previous_iso_week(anchor_date):
+    return (anchor_date - timedelta(days=7)).isocalendar()[:2]
+
+
+def current_weekly_streak(checkin_dates, today):
+    """Count consecutive weeks with a check-in, ending with the latest checked week.
+
+    If the current week has no check-in yet, the prior week can still keep the streak alive.
+    """
+    if not checkin_dates:
+        return 0
+
+    checked_weeks = {d.isocalendar()[:2] for d in checkin_dates}
+    cursor = today.isocalendar()[:2]
+
+    if cursor not in checked_weeks:
+        cursor = _previous_iso_week(today)
+
+    streak = 0
+    while cursor in checked_weeks:
+        streak += 1
+        cursor = _previous_iso_week(date.fromisocalendar(cursor[0], cursor[1], 1))
+
+    return streak

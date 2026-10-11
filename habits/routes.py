@@ -3,8 +3,8 @@ from datetime import date
 from flask import Blueprint, jsonify, request
 
 from db import get_db
+from habits import public as habits_api
 from habits import repository
-from habits.streaks import current_daily_streak
 
 bp = Blueprint("habits", __name__, url_prefix="/habits")
 
@@ -25,6 +25,21 @@ def list_all():
     return jsonify(repository.list_habits(get_db()))
 
 
+@bp.get("/templates")
+def list_templates():
+    return jsonify(repository.list_templates(get_db()))
+
+
+@bp.post("/from-template/<int:template_id>")
+def from_template(template_id):
+    db = get_db()
+    template = repository.get_template(db, template_id)
+    if template is None:
+        return jsonify(error="template not found"), 404
+    habit_id = repository.create_habit(db, template["name"], template["cadence"])
+    return jsonify(id=habit_id, name=template["name"], cadence=template["cadence"]), 201
+
+
 @bp.post("/<int:habit_id>/checkins")
 def check_in(habit_id):
     db = get_db()
@@ -43,7 +58,6 @@ def check_in(habit_id):
 @bp.get("/<int:habit_id>/streak")
 def streak(habit_id):
     db = get_db()
-    if repository.get_habit(db, habit_id) is None:
+    if not habits_api.habit_exists(db, habit_id):
         return jsonify(error="habit not found"), 404
-    dates = [date.fromisoformat(d) for d in repository.get_checkin_dates(db, habit_id)]
-    return jsonify(habit_id=habit_id, streak=current_daily_streak(dates, date.today()))
+    return jsonify(habit_id=habit_id, streak=habits_api.current_streak(db, habit_id, date.today()))

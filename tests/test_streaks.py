@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
-from habits.streaks import current_daily_streak
+from habits.streaks import current_daily_streak, current_weekly_streak
+from insights.stats import best_weekday, milestone_kinds
 
 TODAY = date(2026, 10, 9)
 
@@ -27,3 +28,26 @@ def test_gap_breaks_streak():
 
 def test_stale_checkin_is_zero():
     assert current_daily_streak(days_ago(2, 3), TODAY) == 0
+
+
+def test_weekly_streak_counts_consecutive_weeks():
+    dates = [
+        date(2026, 10, 2),
+        date(2026, 9, 25),
+        date(2026, 9, 18),
+    ]
+    assert current_weekly_streak(dates, TODAY) == 3
+
+
+def test_best_weekday_uses_the_most_common_day():
+    dates = [
+        date(2026, 10, 1),
+        date(2026, 10, 7),
+        date(2026, 10, 7),
+        date(2026, 10, 8),
+    ]
+    assert best_weekday(dates) == "Wednesday"
+
+
+def test_milestone_kinds_are_derived_from_streak_length():
+    assert milestone_kinds(31) == ["streak_7", "streak_30"]

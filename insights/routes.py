@@ -4,7 +4,8 @@ from flask import Blueprint, jsonify
 
 from db import get_db
 from habits import public as habits_api  # seam: only import from habits.public
-from insights.stats import completion_rate
+from insights import repository
+from insights.stats import best_weekday, completion_rate
 
 bp = Blueprint("insights", __name__, url_prefix="/insights")
 
@@ -21,4 +22,31 @@ def weekly(habit_id):
         window_days=WINDOW_DAYS,
         completed=len(dates),
         rate=completion_rate(len(dates), WINDOW_DAYS),
+    )
+
+
+@bp.get("/<int:habit_id>/milestones")
+def milestones(habit_id):
+    db = get_db()
+    if not habits_api.habit_exists(db, habit_id):
+        return jsonify(error="habit not found"), 404
+    return jsonify(milestones=repository.list_milestones(db, habit_id))
+
+
+@bp.get("/<int:habit_id>/summary")
+def summary(habit_id):
+    db = get_db()
+    if not habits_api.habit_exists(db, habit_id):
+        return jsonify(error="habit not found"), 404
+
+    today = date.today()
+    all_dates = [date.fromisoformat(d) for d in habits_api.checkin_dates(db, habit_id)]
+    streak = habits_api.current_streak(db, habit_id, today)
+    milestones = repository.record_milestones(db, habit_id, today.isoformat(), streak)
+
+    return jsonify(
+        habit_id=habit_id,
+        streak=streak,
+        best_weekday=best_weekday(all_dates),
+        milestones=milestones,
     )

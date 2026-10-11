@@ -11,8 +11,20 @@ def list_habits(db):
     return [dict(r) for r in db.execute("SELECT id, name, cadence FROM habits ORDER BY id")]
 
 
+def list_templates(db):
+    return [dict(r) for r in db.execute("SELECT id, name, cadence FROM habit_templates ORDER BY id")]
+
+
 def get_habit(db, habit_id):
     row = db.execute("SELECT id, name, cadence FROM habits WHERE id = ?", (habit_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def get_template(db, template_id):
+    row = db.execute(
+        "SELECT id, name, cadence FROM habit_templates WHERE id = ?",
+        (template_id,),
+    ).fetchone()
     return dict(row) if row else None
 
 

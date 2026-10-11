@@ -28,3 +28,12 @@ def test_weekly_insight_uses_habit_data(client):
     body = client.get(f"/insights/{hid}/weekly").get_json()
     assert body["completed"] == 1
     assert body["rate"] == 1 / 7
+
+
+def test_templates_route_and_summary_endpoint(client):
+    templates = client.get("/habits/templates").get_json()
+    assert templates
+    hid = client.post(f"/habits/from-template/{templates[0]['id']}").get_json()["id"]
+    summary = client.get(f"/insights/{hid}/summary").get_json()
+    assert summary["habit_id"] == hid
+    assert "milestones" in summary
