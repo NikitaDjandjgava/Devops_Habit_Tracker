@@ -26,7 +26,7 @@ SQLite path: `$DATA_DIR/habits.db`. Seed data: `seed.json`, loaded only if `habi
 ## Tests
     pytest --cov=. --cov-report=term-missing
 
-Coverage result: 97% total (15 tests passed in 0.48s on Python 3.14.3; see the report below)
+Coverage result: 94% total (19 tests passed in 0.38s on Python 3.14.3)
 
 ## Container contract (§7) evidence
 The repo now includes a working Dockerfile and `./container/run.sh` checker. The script is designed to build the image, start the app on `0.0.0.0:$PORT`, and verify `http://127.0.0.1:$PORT/health`.
@@ -35,11 +35,15 @@ Local validation note: Docker is not installed in this environment (`docker: com
 
     ./container/run.sh /path/to/habit-tracker
 
-## API (so far)
+## API
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/health` | liveness |
 | POST/GET | `/habits` | create / list habits |
+| GET | `/habits/templates` | list habit templates |
+| POST | `/habits/from-template/<id>` | create a habit from a seed template |
 | POST | `/habits/<id>/checkins` | check in (body: optional `date`) |
-| GET | `/habits/<id>/streak` | current daily streak |
+| GET | `/habits/<id>/streak` | current streak for the habit cadence |
 | GET | `/insights/<id>/weekly` | 7-day completion rate |
+| GET | `/insights/<id>/milestones` | list recorded milestone achievements |
+| GET | `/insights/<id>/summary` | streak, best weekday, and milestone summary |
