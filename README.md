@@ -10,6 +10,8 @@ A minimal, single-process Flask + SQLite application for recording daily or week
     pip install -r requirements.txt
     python app.py            # http://localhost:8000
 
+Open `http://127.0.0.1:8000/` for the daily dashboard. You can add daily or weekly habits, use a seeded suggestion, and mark a habit complete or incomplete for the current period. The JSON API remains available for other clients.
+
 ## Run in Docker
     docker build -t habit-tracker .
     docker run -p 8000:8000 -v habit-data:/data -e DATA_DIR=/data habit-tracker
@@ -19,13 +21,14 @@ A minimal, single-process Flask + SQLite application for recording daily or week
 |---|---|---|
 | `PORT` | `8000` | Listening port |
 | `DATA_DIR` | `data` | Directory holding the SQLite file |
+| `FLASK_SECRET_KEY` | random per process | Optional persistent signing key for temporary UI messages; do not commit its value |
 
 SQLite path: `$DATA_DIR/habits.db`. Seed data: `seed.json`, loaded only if `habit_templates` is empty.
 
 ## Tests
     pytest --cov=. --cov-report=term-missing
 
-Coverage result: 96% total (24 tests passed in the latest local run).
+Coverage result: 98% total (30 tests passed in the latest local run).
 
 ## Code quality checks
 Install the root dependencies, then run these checks before committing changes:
@@ -57,6 +60,9 @@ Local validation note: Docker is not installed in this environment (`docker: com
 | GET | `/insights/<id>/weekly` | Habit ID in path | `{"habit_id":1,"window_days":7,"completed":1,"rate":0.14}` | 404 unknown habit |
 | GET | `/insights/<id>/milestones` | Habit ID in path | `{"milestones":[...]}` | 404 unknown habit |
 | GET | `/insights/<id>/summary` | Habit ID in path | `{"habit_id":1,"streak":3,"best_weekday":"Friday","milestones":[...]}` | 404 unknown habit |
+| GET | `/` | None | Responsive daily habit dashboard | — |
+| POST | `/ui/habits` | Form fields `name`, `cadence` | Redirects to dashboard with status message | Invalid form is reported on dashboard |
+| POST | `/ui/habits/<id>/toggle` | Habit ID in path | Redirects after toggling current-day/week check-in | Unknown habit is reported on dashboard |
 
 ## Inputs, responses, and limitations
 Habit creation accepts a JSON object with a non-empty `name` and an optional `cadence` of `daily` or `weekly`. Check-ins accept an optional canonical `YYYY-MM-DD` date. Invalid input returns HTTP 400; unknown habit or template IDs return HTTP 404. IDs in route paths must be positive integers.

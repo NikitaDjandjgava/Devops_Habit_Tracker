@@ -49,6 +49,15 @@ def add_checkin(db: sqlite3.Connection, habit_id: int, checked_on: str) -> None:
     db.commit()
 
 
+def delete_checkin(db: sqlite3.Connection, habit_id: int, checked_on: str) -> None:
+    """Remove one habit check-in on the specified date."""
+    db.execute(
+        "DELETE FROM checkins WHERE habit_id = ? AND checked_on = ?",
+        (habit_id, checked_on),
+    )
+    db.commit()
+
+
 def get_checkin_dates(
     db: sqlite3.Connection,
     habit_id: int,

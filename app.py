@@ -12,11 +12,13 @@ from flask import Flask, Response, jsonify
 from db import close_db, init_db
 from habits.routes import bp as habits_bp
 from insights.routes import bp as insights_bp
+from ui.routes import bp as ui_bp
 
 
 def create_app(data_dir: str | None = None) -> Flask:
     """Create the Flask application using the requested data directory."""
     app = Flask(__name__)
+    app.secret_key = os.environ.get("FLASK_SECRET_KEY") or os.urandom(32)
     data_dir = data_dir or os.environ.get("DATA_DIR") or "data"
     app.config["DB_PATH"] = os.path.join(data_dir, "habits.db")
 
@@ -25,6 +27,7 @@ def create_app(data_dir: str | None = None) -> Flask:
 
     app.register_blueprint(habits_bp)
     app.register_blueprint(insights_bp)
+    app.register_blueprint(ui_bp)
 
     @app.get("/health")
     def health() -> Response:

@@ -25,7 +25,7 @@ The timeline was compressed relative to the ideal assignment plan, but the proce
 
 ## 3. Architecture
 
-The application runs as a single Flask process and exposes HTTP routes for habits and insights. Both domains persist to the same SQLite database file under the configured `DATA_DIR`, which keeps the project within the single-container requirement.
+The application runs as a single Flask process and serves a responsive HTML dashboard together with JSON routes for habits and insights. All surfaces use the same SQLite database under the configured `DATA_DIR`, which keeps the project within the single-container requirement.
 
 ```mermaid
 flowchart LR
@@ -115,7 +115,7 @@ mypy
 pytest --cov=. --cov-report=term-missing
 ```
 
-Latest recorded validation: 24 tests passed and 96% coverage. Ruff lint/format/security checks and mypy are configured as local pre-commit gates. Docker validation requires Docker to be installed on the machine running the checker; it was unavailable in the development environment.
+Latest recorded validation: 30 tests passed and 98% coverage. Ruff lint/format/security checks and mypy are configured as local pre-commit gates. Docker validation requires Docker to be installed on the machine running the checker; it was unavailable in the development environment.
 
 ## 7. AI disclosure and evidence
 
