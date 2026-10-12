@@ -59,6 +59,14 @@ def from_template(template_id: int) -> Response | tuple[Response, int]:
     return jsonify(id=habit_id, name=template["name"], cadence=template["cadence"]), 201
 
 
+@bp.delete("/<int:habit_id>")
+def delete(habit_id: int) -> tuple[Response, int] | tuple[str, int]:
+    """Permanently delete a habit and its check-ins."""
+    if not repository.delete_habit(get_db(), habit_id):
+        return jsonify(error="habit not found"), 404
+    return "", 204
+
+
 @bp.post("/<int:habit_id>/checkins")
 def check_in(habit_id: int) -> Response | tuple[Response, int]:
     """Record an idempotent check-in for the requested habit."""

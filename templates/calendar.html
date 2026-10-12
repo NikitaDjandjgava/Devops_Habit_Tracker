@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Calendar{% endblock %}
+
+{% block content %}
+      <section class="calendar-section" aria-label="Monthly habit calendar">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">YOUR MONTH</p>
+            <h2>{{ month_title }}</h2>
+          </div>
+          <nav class="month-nav" aria-label="Change month">
+            <a class="month-link" href="{{ url_for('ui.calendar_view', month=previous_month) }}" aria-label="Previous month">‹</a>
+            <a class="month-link month-link-today" href="{{ url_for('ui.calendar_view') }}">Today</a>
+            <a class="month-link" href="{{ url_for('ui.calendar_view', month=next_month) }}" aria-label="Next month">›</a>
+          </nav>
+        </div>
+
+        <div class="calendar-grid">
+          {% for name in weekday_names %}
+            <div class="calendar-weekday">{{ name }}</div>
+          {% endfor %}
+          {% for week in weeks %}
+            {% for day in week %}
+              <div class="calendar-day {% if not day.in_month %}calendar-day-outside{% endif %} {% if day.date == today %}calendar-day-today{% endif %}">
+                <span class="calendar-date">{{ day.date.day }}</span>
+                {% for entry in day.habits %}
+                  <span class="calendar-habit habit-color-{{ entry.color }} {% if entry.done %}calendar-habit-done{% endif %}" title="{{ entry.time }} {{ entry.name }}">
+                    <b>{{ entry.time }}</b> {{ entry.name }}
+                  </span>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          {% endfor %}
+        </div>
+      </section>
+{% endblock %}

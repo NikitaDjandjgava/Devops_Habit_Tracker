@@ -49,6 +49,15 @@ def test_checkin_is_idempotent_and_streak_counts(client: FlaskClient) -> None:
     assert client.get(f"/habits/{hid}/streak").get_json()["streak"] == 1
 
 
+def test_delete_habit_removes_it_and_its_checkins(client: FlaskClient) -> None:
+    hid = make_habit(client)
+    client.post(f"/habits/{hid}/checkins", json={})
+    assert client.delete(f"/habits/{hid}").status_code == 204
+    assert client.get("/habits").get_json() == []
+    assert client.get(f"/habits/{hid}/streak").status_code == 404
+    assert client.delete(f"/habits/{hid}").status_code == 404
+
+
 def test_checkin_unknown_habit_404(client: FlaskClient) -> None:
     assert client.post("/habits/999/checkins", json={}).status_code == 404
 

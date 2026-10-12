@@ -112,6 +112,44 @@ def test_ui_form_accepts_custom_alerts(client: FlaskClient) -> None:
     assert b"2 hr before" in page.data
 
 
+def test_dashboard_delete_removes_habit(client: FlaskClient) -> None:
+    hid = client.post("/habits", json={"name": "Old habit", "cadence": "daily"}).get_json()["id"]
+    response = client.post(f"/ui/habits/{hid}/delete")
+    assert response.status_code == 302
+    page = client.get("/").data
+    assert b"was deleted" in page
+    assert b"Your first small step starts here." in page
+    assert client.post(f"/ui/habits/{hid}/delete").status_code == 302
+    assert b"could not be found" in client.get("/").data
+
+
+def test_consecutive_habits_get_different_colors(client: FlaskClient) -> None:
+    client.post("/habits", json={"name": "First", "cadence": "daily"})
+    client.post("/habits", json={"name": "Second", "cadence": "daily"})
+    page = client.get("/").data
+    assert b"habit-card habit-color-1" in page
+    assert b"habit-card habit-color-2" in page
+
+
+def test_dashboard_shows_hourly_timeline(client: FlaskClient) -> None:
+    client.post("/habits", json={"name": "Morning run", "cadence": "daily", "time_of_day": "06:15"})
+    page = client.get("/").data
+    assert b"Today's timeline" in page
+    assert b'data-hour="6"' in page
+    assert b"<b>06:15</b> Morning run" in page
+
+
+def test_calendar_shows_habits_and_handles_month_navigation(client: FlaskClient) -> None:
+    client.post("/habits", json={"name": "Yoga", "cadence": "daily", "time_of_day": "08:00"})
+    page = client.get("/calendar?month=2026-02")
+    assert page.status_code == 200
+    assert b"February 2026" in page.data
+    assert b"Yoga" in page.data
+    assert b"month=2026-01" in page.data
+    assert b"month=2026-03" in page.data
+    assert client.get("/calendar?month=garbage").status_code == 200
+
+
 def test_ui_rejects_habit_scheduled_for_another_day(client: FlaskClient) -> None:
     from datetime import date
 

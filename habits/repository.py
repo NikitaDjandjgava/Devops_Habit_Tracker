@@ -99,6 +99,13 @@ def add_checkin(db: sqlite3.Connection, habit_id: int, checked_on: str) -> None:
     db.commit()
 
 
+def delete_habit(db: sqlite3.Connection, habit_id: int) -> bool:
+    """Delete a habit and its check-ins, returning False when it did not exist."""
+    cur = db.execute("DELETE FROM habits WHERE id = ?", (habit_id,))
+    db.commit()
+    return cur.rowcount > 0
+
+
 def delete_checkin(db: sqlite3.Connection, habit_id: int, checked_on: str) -> None:
     """Remove one habit check-in on the specified date."""
     db.execute(

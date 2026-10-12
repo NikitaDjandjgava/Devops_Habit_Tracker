@@ -8,6 +8,14 @@ from werkzeug.wrappers import Response
 from db import get_db
 from habits import public as habits_api
 from habits import repository
+from habits.agenda import (
+    habit_color,
+    hourly_slots,
+    month_date_range,
+    month_weeks,
+    parse_month,
+    shift_month,
+)
 from habits.schedule import due_reminders, parse_schedule
 
 bp = Blueprint("ui", __name__)
@@ -21,6 +29,7 @@ def dashboard() -> str:
     today = date.today()
     habits = repository.list_habits(db)
     completed_count = 0
+    checked: set[tuple[int, str]] = set()
 
     for habit in habits:
         start_date = today - timedelta(days=6)
@@ -31,7 +40,10 @@ def dashboard() -> str:
             today.isoformat(),
         )
         habit["checkin_dates"] = dates
+        for checked_on in dates:
+            checked.add((habit["id"], checked_on))
         habit["completed"] = today.isoformat() in dates
+        habit["color"] = habit_color(habit["id"])
         habit["scheduled_today"] = today.weekday() in habit["days_of_week"]
         habit["streak"] = habits_api.current_streak(db, habit["id"], today)
         habit["period_label"] = "TODAY" if habit["scheduled_today"] else "NOT TODAY"
@@ -62,12 +74,43 @@ def dashboard() -> str:
             reminder_habits.append(habit)
     return render_template(
         "dashboard.html",
+        active_page="today",
         habits=habits,
         scheduled_habits=scheduled_habits,
         reminder_habits=reminder_habits,
         today=today,
         completed_count=completed_count,
         completion_percent=completion_percent,
+        hourly=hourly_slots(habits, today, checked),
+    )
+
+
+@bp.get("/calendar")
+def calendar_view() -> str:
+    """Render a month grid showing each habit on the days it is scheduled."""
+    db = get_db()
+    today = date.today()
+    year, month = parse_month(request.args.get("month", ""), today)
+    first_day, last_day = month_date_range(year, month)
+
+    habits = repository.list_habits(db)
+    checked: set[tuple[int, str]] = set()
+    for habit in habits:
+        dates = habits_api.checkin_dates(
+            db, habit["id"], first_day.isoformat(), last_day.isoformat()
+        )
+        for checked_on in dates:
+            checked.add((habit["id"], checked_on))
+
+    return render_template(
+        "calendar.html",
+        active_page="calendar",
+        today=today,
+        month_title=date(year, month, 1).strftime("%B %Y"),
+        weeks=month_weeks(year, month, habits, checked),
+        weekday_names=WEEKDAY_NAMES,
+        previous_month=shift_month(year, month, -1),
+        next_month=shift_month(year, month, 1),
     )
 
 
@@ -131,6 +174,19 @@ def toggle_checkin(habit_id: int) -> Response:
     else:
         repository.add_checkin(db, habit_id, today.isoformat())
         flash(f'"{habit["name"]}" completed. Nice work!', "success")
+    return redirect(url_for("ui.dashboard"))
+
+
+@bp.post("/ui/habits/<int:habit_id>/delete")
+def delete_habit(habit_id: int) -> Response:
+    """Permanently delete a habit from the dashboard."""
+    db = get_db()
+    habit = repository.get_habit(db, habit_id)
+    if habit is None:
+        flash("That habit could not be found.", "error")
+        return redirect(url_for("ui.dashboard"))
+    repository.delete_habit(db, habit_id)
+    flash(f'"{habit["name"]}" was deleted.', "success")
     return redirect(url_for("ui.dashboard"))
 
 
