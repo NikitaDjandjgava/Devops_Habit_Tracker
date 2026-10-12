@@ -26,6 +26,14 @@ def habit_exists(db: sqlite3.Connection, habit_id: int) -> bool:
     return repository.get_habit(db, habit_id) is not None
 
 
+def scheduled_weekdays(db: sqlite3.Connection, habit_id: int) -> list[int]:
+    """Return the habit's scheduled weekday numbers, Monday as 0."""
+    habit = repository.get_habit(db, habit_id)
+    if habit is None:
+        return []
+    return habit["days_of_week"]
+
+
 def current_streak(db: sqlite3.Connection, habit_id: int, today: date) -> int:
     """Calculate a habit's active streak according to its cadence."""
     habit = repository.get_habit(db, habit_id)

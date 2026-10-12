@@ -85,6 +85,14 @@ def test_weekly_insight_uses_habit_data(client: FlaskClient) -> None:
     assert body["rate"] == 1 / 7
 
 
+def test_weekly_insight_divides_by_scheduled_days(client: FlaskClient) -> None:
+    hid = make_habit(client, cadence="weekly")
+    client.post(f"/habits/{hid}/checkins", json={})
+    body = client.get(f"/insights/{hid}/weekly").get_json()
+    assert body["scheduled_days"] == 1
+    assert body["rate"] == 1.0
+
+
 def test_templates_route_and_summary_endpoint(client: FlaskClient) -> None:
     templates = client.get("/habits/templates").get_json()
     assert templates

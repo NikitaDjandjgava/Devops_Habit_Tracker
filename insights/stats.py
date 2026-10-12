@@ -3,7 +3,7 @@
 import calendar
 from collections import Counter
 from collections.abc import Sequence
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import TypeAlias
 
 CheckinDate: TypeAlias = date | datetime | str
@@ -14,6 +14,17 @@ def completion_rate(done_days: int, window_days: int) -> float:
     if window_days <= 0:
         raise ValueError("window_days must be positive")
     return min(done_days, window_days) / window_days
+
+
+def scheduled_day_count(days_of_week: list[int], start: date, end: date) -> int:
+    """Count dates from start to end inclusive that fall on a scheduled weekday."""
+    count = 0
+    current_date = start
+    while current_date <= end:
+        if current_date.weekday() in days_of_week:
+            count += 1
+        current_date += timedelta(days=1)
+    return count
 
 
 def best_weekday(checkin_dates: Sequence[CheckinDate]) -> str | None:

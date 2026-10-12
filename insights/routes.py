@@ -7,7 +7,7 @@ from flask import Blueprint, Response, jsonify
 from db import get_db
 from habits import public as habits_api  # seam: only import from habits.public
 from insights import repository
-from insights.stats import best_weekday, completion_rate
+from insights.stats import best_weekday, completion_rate, scheduled_day_count
 
 bp = Blueprint("insights", __name__, url_prefix="/insights")
 
@@ -23,11 +23,13 @@ def weekly(habit_id: int) -> Response | tuple[Response, int]:
     end = date.today()
     start = end - timedelta(days=WINDOW_DAYS - 1)
     dates = habits_api.checkin_dates(db, habit_id, start.isoformat(), end.isoformat())
+    due_days = scheduled_day_count(habits_api.scheduled_weekdays(db, habit_id), start, end)
     return jsonify(
         habit_id=habit_id,
         window_days=WINDOW_DAYS,
+        scheduled_days=due_days,
         completed=len(dates),
-        rate=completion_rate(len(dates), WINDOW_DAYS),
+        rate=completion_rate(len(dates), due_days),
     )
 
 
