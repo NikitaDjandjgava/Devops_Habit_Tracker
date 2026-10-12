@@ -30,7 +30,7 @@ The timeline was compressed relative to the ideal assignment plan, but the proce
 | Two working domains | Habits and insights each read and write SQLite through their own repository module | 2026-10-11 | Met (commit `7903474`) |
 | Clean seam | `insights/` imports nothing from `habits/` except `habits.public` | 2026-10-11 | Met |
 | Test coverage | ≥70% line coverage with `pytest --cov` | 2026-10-12 | Met: 93% |
-| Container contract | `run.sh` passes against the filled template | 2026-10-12 | Not yet run: Docker unavailable on the development machine |
+| Container contract | `run.sh` passes against the filled template | 2026-10-12 | Met: all checks passed (output in README) |
 | Commit cadence | ≥12 meaningful commits over ≥6 days, ≤40% per day | 2026-10-12 | Not met: work started 2026-10-09, so at most 4 calendar days were available |
 
 ### How the model was followed in practice
@@ -154,7 +154,7 @@ mypy
 pytest --cov=. --cov-report=term-missing
 ```
 
-Latest validation (2026-10-12): 53 tests passed with 95% total coverage; Ruff lint, formatting, mypy, Python compilation, and `git diff --check` passed. Ruff lint/format/security checks and mypy are configured as local pre-commit gates. Docker validation requires Docker to be installed on the machine running the checker; it was unavailable in the development environment.
+Latest validation (2026-10-12): 53 tests passed with 95% total coverage; Ruff lint, formatting, mypy, Python compilation, and `git diff --check` passed. Ruff lint/format/security checks and mypy are configured as local pre-commit gates. The course `run.sh` checker passed all checks in Docker on 2026-10-12.
 
 ### What the tests cover thinly, and why
 
@@ -210,8 +210,8 @@ The habits service keeps `habits`, `checkins`, `habit_templates`, the dashboard,
 
 The detailed, per-interaction log is in [AI_USAGE.md](./AI_USAGE.md).
 
-> I acknowledge the use of [AI SYSTEMS, e.g. Claude and Cursor] to [HOW YOU USED THEM, e.g. generate the initial Flask skeleton, implement scheduled streaks and reminders, and review the project against the assignment rules]. The prompts used include [2-3 REAL PROMPTS]. The output of these prompts was used to [WHAT YOU KEPT, CHANGED, OR REJECTED].
+> I acknowledge the use of [AI SYSTEMS, e.g. Claude and Cursor] to help me construct the main architecture for the project as well as code parts I was unversed in, especially when it came to the UI of the app. The prompts used include ["build me a skeleton for this project according to the requirements", "help me build a calendar view for this appp" and "adapt the style from these inspirations (linking different websites) to create a UI system for the app"]. The output of these prompts was used to better guide the scope of the project and help me learn more about software development. I made sure I understand all code that I submit and that all of the direct decisions responsible for this project's realisation were made by me.
 
 ## 11. Conclusion
 
-HabitTracker is a single-process Flask and SQLite app with two domains split at a narrow seam, idempotent startup and seeding, and 95% test coverage. Users can schedule habits on chosen weekdays, see them on a monthly calendar and an hourly timeline, check them off, and delete them. The insights domain reports schedule-aware completion rates, best weekdays, and streak milestones without touching habits storage. The commit-cadence requirement was not met because of the late start, and the container checker still has to be run on a machine with Docker.
+HabitTracker is a single-process Flask and SQLite app with two domains split at a narrow seam, idempotent startup and seeding, and 95% test coverage. Users can schedule habits on chosen weekdays, see them on a monthly calendar and an hourly timeline, check them off, and delete them. The insights domain reports schedule-aware completion rates, best weekdays, and streak milestones without touching habits storage. The course container checker passes all checks. The commit-cadence requirement was not met because of the late start.

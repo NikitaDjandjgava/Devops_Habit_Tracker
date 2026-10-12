@@ -58,11 +58,35 @@ Install the root dependencies, then run these checks before committing changes:
 Ruff provides linting, formatting, basic security checks, and checks for module and public-function docstrings. It ignores S104 only for `app.py` because binding to `0.0.0.0` is required by the container contract. Mypy checks type annotations in the application packages and tests. The assignment prohibits adding CI workflows, so these local commands are the project quality gate. Run them before each commit.
 
 ## Container contract (§7) evidence
-**WARNING: THE PASSING `run.sh` OUTPUT IS NOT YET PASTED HERE.** Run the course-provided checker on a machine with Docker and paste its full output below:
+Course-provided checker, run on 2026-10-12 in WSL Ubuntu with Docker Desktop. `NAME` was set because WSL already defines it as the machine's hostname, which is not a valid lowercase image name. A shell-level `mktemp` wrapper was defined because the checker's `mktemp -t sdd-check` only works on macOS; `run.sh` itself is unmodified.
 
-    ./container/run.sh /path/to/habit-tracker
+    NAME=habit-tracker bash container/run.sh .
 
-    <paste run.sh output here>
+    === SDD Assignment 1 contract check ===
+    Repository: /mnt/d/programming/Devops_Habit_Tracker
+
+    ==> Repository shape
+      PASS  one Dockerfile, one manifest (requirements.txt)
+
+    ==> Build from a clean context, no build args
+      PASS  image built
+      PASS  image size 319 MB
+
+    ==> Start on PORT=8000 and reach it from the host
+      PASS  HTTP 200 from http://localhost:8000/
+
+    ==> SQLite file under DATA_DIR
+      PASS  found in /data: habits.db
+
+    ==> Data persists, and a second boot does not re-seed
+      PASS  volume at /data persists
+      PASS  row counts unchanged across restart: checkins=0 habit_templates=5 habits=0 milestones=0
+
+    ==> PORT override is honoured (not hardcoded)
+      PASS  HTTP 200 from http://localhost:9123/
+
+    === ALL CHECKS PASSED ===
+    Paste this output into your README as the §7 evidence.
 
 Manual contract check without Docker (2026-10-12, Windows, `PORT=8123`, empty `DATA_DIR`): the server logged `Running on all addresses (0.0.0.0)`, `/health` returned `{"status":"ok"}`, `habits.db` was created in `DATA_DIR`, and after a restart on the same directory the row counts were unchanged (5 templates, 1 habit).
 
