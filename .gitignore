@@ -9,4 +9,5 @@ data/
 *.sqlite
 .env
 PROJECT_STATE.md
+run-output.txt
 RULES.md
