@@ -12,7 +12,7 @@ Alternatives considered: Django, rejected because its ORM, admin, and auth featu
 Consequences: The app stays small and readable, and most of the logic is in pure functions and explicit SQL; the trade-off is that the Flask development server is not production-grade, but that is acceptable for Assignment 1.
 
 ## 2. Domain scoping and seam between habits and insights
-Date: 2026-10-10
+Date: 2026-10-11
 Status: Decided
 Context: The assignment requires two domains that are logically separable, and the insights domain must not become coupled to habits internals. We need a narrow seam that can still support future service boundaries in Assignment 2.
 Decision: Keep all database reads and writes for habits in `habits/repository.py`, and expose only a small `habits/public.py` API for other domains. Insights imports only from that seam and never from `habits.repository` or `checkins` tables directly.
@@ -20,7 +20,7 @@ Alternatives considered: Having insights query `checkins` and `habits` tables di
 Consequences: The project stays modular enough for the assignment, while the seam provides a clean future boundary for Assignment 2; the cost is that a few helper functions such as `habit_exists` and `current_streak` must be explicitly added.
 
 ## 3. SQLite schema and data-model decision
-Date: 2026-10-10
+Date: 2026-10-11
 Status: Decided
 Context: The habit tracker needs idempotent check-ins, seedable reference labels, and a separate insights-owned table for milestone tracking without creating a hard dependency from insights to the habits tables.
 Decision: Use the schema in `schema.sql`: `habits` and `checkins` remain in the habits domain, `habit_templates` stores seed data, and `milestones` is owned by insights but intentionally has no foreign key on `habit_id`.
@@ -31,14 +31,14 @@ Consequences: The database remains simple and explainable, and it supports idemp
 Date: 2026-10-11
 Status: Decided
 Context: The rubric emphasizes business logic tests rather than framework glue, but there are still integration checks for route behavior and idempotent boot logic. The project needs to keep coverage high without testing Flask details too heavily.
-Decision: Prioritize pure-function tests for `current_daily_streak`, `current_weekly_streak`, `completion_rate`, `best_weekday`, and milestone derivation, and keep a small number of route-level tests for API validation and idempotent boot behavior.
+Decision: Prioritize pure-function tests for `current_scheduled_streak`, `parse_schedule`, `due_reminders`, `completion_rate`, `scheduled_day_count`, and milestone derivation, and keep a small number of route-level tests for API validation and idempotent boot behavior.
 Alternatives considered: Testing only HTTP routes, rejected because it would miss core logic errors and would not provide meaningful coverage of the business rules; testing every implementation detail, rejected because it is brittle and far slower to maintain.
 Consequences: The project gets reliable, readable coverage while the tests remain fast and easy to explain in class; the trade-off is that some framework plumbing is intentionally thin and not the main focus of the suite.
 
-## 5. Deliberately not built
-Date: 2026-10-11
+## 5. Deliberately not built: server-side reminder delivery
+Date: 2026-10-12
 Status: Decided
-Context: The assignment explicitly forbids background jobs, a second service, and extra infrastructure, and the project must stay within the single-process, single-container scope.
-Decision: We intentionally do not build authentication, multi-user accounts, notifications, or timezone handling beyond a simple server-local date approach.
-Alternatives considered: Adding user accounts and per-user timezone support, rejected because they introduce large data-model and security choices that are well beyond the assignment; background reminders, rejected because message brokers and cron jobs are explicitly out of scope.
-Consequences: The app stays aligned with the rubric and remains easy to explain; the cost is that some real-world habit tracking features are intentionally deferred and treated as future work rather than part of this assignment.
+Context: Users asked for reminders at a habit's scheduled time, but the assignment allows only one process and rules out background job runners, cron containers, and message brokers.
+Decision: Reminders are computed by `due_reminders` and polled by the open dashboard through `/ui/reminders`; we do not build server-side delivery (email, mobile push, or alerts while the browser is closed), and we also skip accounts and per-user time zones.
+Alternatives considered: An in-process scheduler thread that sends emails, rejected because it needs an external mail service and duplicates work if the app ever runs more than one instance; a cron container, rejected because a second container is out of scope.
+Consequences: Reminders only fire while the dashboard tab is open, which is documented as a limitation; in Assignment 2 a separate notification service can take over delivery using the same `due_reminders` logic.
