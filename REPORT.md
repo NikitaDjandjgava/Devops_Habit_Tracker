@@ -23,24 +23,56 @@ This project used an iterative, incremental SDLC model with a time-compressed de
 
 The timeline was compressed relative to the ideal assignment plan, but the process remained honest and incremental. Each milestone was validated with the existing test suite before moving forward.
 
+### SMART goals
+
+| Goal | Specific / measurable target | Deadline | Result |
+|---|---|---|---|
+| Two working domains | Habits and insights each read and write SQLite through their own repository module | 2026-10-11 | Met (commit `7903474`) |
+| Clean seam | `insights/` imports nothing from `habits/` except `habits.public` | 2026-10-11 | Met |
+| Test coverage | ≥70% line coverage with `pytest --cov` | 2026-10-12 | Met: 93% |
+| Container contract | `run.sh` passes against the filled template | 2026-10-12 | Not yet run: Docker unavailable on the development machine |
+| Commit cadence | ≥12 meaningful commits over ≥6 days, ≤40% per day | 2026-10-12 | Not met: work started 2026-10-09, so at most 4 calendar days were available |
+
+### How the model was followed in practice
+
+Iterations 1-3 matched the plan. The browser dashboard and scheduled reminders were added on the last day after the core domains were finished, which compressed testing and documentation into the final iteration. The late start is the main deviation from the plan and the reason the commit-cadence goal was missed.
+
 ## 3. Architecture
 
 The application runs as a single Flask process and serves a responsive HTML dashboard together with JSON routes for habits and insights. The dashboard polls for due reminders while open; it does not use a background worker and cannot deliver reminders when the dashboard is closed. All surfaces use the same SQLite database under the configured `DATA_DIR`, which keeps the project within the single-container requirement.
 
 ```mermaid
 flowchart LR
-    A[Client / Browser / API caller] --> B[Flask app in app.py]
-    B --> C[habits routes]
-    B --> D[insights routes]
-    C --> E[habits repository]
-    D --> F[habits/public.py seam]
-    E --> G[(SQLite habits.db)]
-    D --> H[insights repository]
-    H --> G
+    A[Browser / API caller] --> B[Flask app in app.py]
+    subgraph HabitsDomain[Habits domain]
+        U[ui/routes.py dashboard]
+        C[habits/routes.py]
+        S[habits/schedule.py pure logic]
+        E[habits/repository.py]
+        F[habits/public.py]
+    end
+    subgraph InsightsDomain[Insights domain]
+        D[insights/routes.py]
+        T[insights/stats.py pure logic]
+        H[insights/repository.py]
+    end
+    B --> U
+    B --> C
+    B --> D
+    U --> E
+    U --> S
+    C --> E
+    C --> S
     F --> E
+    D -- "SEAM: habit_id in, ISO dates / streak / weekdays out" --> F
+    D --> T
+    D --> H
+    E --> G1[(habits, checkins, habit_templates)]
+    H --> G2[(milestones)]
+    G1 -.same habits.db file.- G2
 ```
 
-The seam is the most important architectural boundary in the system. `insights` is allowed to call `habits.public` only, which means it can ask for allowed facts such as check-in dates and current streak without reaching into the habits database implementation directly.
+The seam is the arrow from `insights/routes.py` to `habits/public.py`. `insights` may only call `habit_exists`, `checkin_dates`, `current_streak`, and `scheduled_weekdays`; what crosses is a `habit_id` going in and plain values (ISO date strings, an integer streak, weekday numbers) coming out. In Assignment 2 each of these functions becomes an HTTP endpoint on the habits service, and the `milestones` table moves to the insights service's own database. The dashboard in `ui/` belongs to the habits side because it reads and writes habits and check-ins directly.
 
 ## 4. Database model
 
@@ -63,23 +95,21 @@ erDiagram
 
     CHECKINS {
         INTEGER id PK
-        INTEGER habit_id FK
-        TEXT checked_on
-        UNIQUE(habit_id, checked_on)
+        INTEGER habit_id FK,UK "UNIQUE(habit_id, checked_on)"
+        TEXT checked_on UK
     }
 
     HABIT_TEMPLATES {
         INTEGER id PK
-        TEXT name
+        TEXT name UK
         TEXT cadence
     }
 
     MILESTONES {
         INTEGER id PK
-        INTEGER habit_id
-        TEXT kind
+        INTEGER habit_id UK "logical reference, no FK"
+        TEXT kind UK "UNIQUE(habit_id, kind)"
         TEXT achieved_on
-        UNIQUE(habit_id, kind)
     }
 ```
 
@@ -93,6 +123,7 @@ The habits logic is intentionally pure and unit-testable:
 - `current_scheduled_streak()` counts consecutive scheduled dates, ignoring unscheduled days.
 - `due_reminders()` matches current local minutes to each incomplete habit's alert time, including alerts that cross midnight.
 - `completion_rate()` computes the fraction of completed days in a window.
+- `scheduled_day_count()` counts how many days in the window the habit was actually due, so a Monday-only habit is measured out of 1 day, not 7.
 
 The insights logic then builds on those values:
 
@@ -121,11 +152,13 @@ mypy
 pytest --cov=. --cov-report=term-missing
 ```
 
-Latest validation: 40 tests passed with 93% total coverage; Ruff lint, formatting, mypy, Python compilation, and `git diff --check` passed. Ruff lint/format/security checks and mypy are configured as local pre-commit gates. Docker validation requires Docker to be installed on the machine running the checker; it was unavailable in the development environment.
+Latest validation (2026-10-12): 42 tests passed with 93% total coverage; Ruff lint, formatting, mypy, Python compilation, and `git diff --check` passed. Ruff lint/format/security checks and mypy are configured as local pre-commit gates. Docker validation requires Docker to be installed on the machine running the checker; it was unavailable in the development environment.
 
 ## 7. AI disclosure and evidence
 
-This project includes an AI usage log at [AI_USAGE.md](./AI_USAGE.md). The log is intentionally kept as a template until the student fills it in after final review, as required by the assignment instructions. The report here documents the system architecture and the decisions made without claiming the student’s own words for AI-generated content.
+The detailed, per-interaction log is in [AI_USAGE.md](./AI_USAGE.md).
+
+> I acknowledge the use of [AI SYSTEMS, e.g. Claude and Cursor] to [HOW YOU USED THEM, e.g. generate the initial Flask skeleton, implement scheduled streaks and reminders, and review the project against the assignment rules]. The prompts used include [2-3 REAL PROMPTS]. The output of these prompts was used to [WHAT YOU KEPT, CHANGED, OR REJECTED].
 
 ## 8. Conclusion
 

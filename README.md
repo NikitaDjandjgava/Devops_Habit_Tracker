@@ -32,7 +32,7 @@ SQLite path: `$DATA_DIR/habits.db`. Seed data: `seed.json`, loaded only if `habi
 ## Tests
     pytest --cov=. --cov-report=term-missing
 
-Coverage result: 98% total (30 tests passed in the latest local run).
+Coverage result (2026-10-12): 42 tests passed, 93% total. Core domain code only (`pytest --cov=habits --cov=insights --cov=db`) is also 93%; the lowest file is `habits/schedule.py` at 82%.
 
 ## Code quality checks
 Install the root dependencies, then run these checks before committing changes:
@@ -45,11 +45,13 @@ Install the root dependencies, then run these checks before committing changes:
 Ruff provides linting, formatting, basic security checks, and checks for module and public-function docstrings. It ignores S104 only for `app.py` because binding to `0.0.0.0` is required by the container contract. Mypy checks type annotations in the application packages and tests. The assignment prohibits adding CI workflows, so these local commands are the project quality gate. Run them before each commit.
 
 ## Container contract (§7) evidence
-The repo now includes a working Dockerfile and `./container/run.sh` checker. The script is designed to build the image, start the app on `0.0.0.0:$PORT`, and verify `http://127.0.0.1:$PORT/health`.
-
-Local validation note: Docker is not installed in this environment (`docker: command not recognized`), so the checker could not be executed here. The command is ready to run on any machine with Docker installed:
+**WARNING: THE PASSING `run.sh` OUTPUT IS NOT YET PASTED HERE.** Run the course-provided checker on a machine with Docker and paste its full output below:
 
     ./container/run.sh /path/to/habit-tracker
+
+    <paste run.sh output here>
+
+Manual contract check without Docker (2026-10-12, Windows, `PORT=8123`, empty `DATA_DIR`): the server logged `Running on all addresses (0.0.0.0)`, `/health` returned `{"status":"ok"}`, `habits.db` was created in `DATA_DIR`, and after a restart on the same directory the row counts were unchanged (5 templates, 1 habit).
 
 ## API
 | Method | Path | Input | Successful JSON response | Errors |
@@ -61,7 +63,7 @@ Local validation note: Docker is not installed in this environment (`docker: com
 | POST | `/habits/from-template/<id>` | Template ID in path | `{"id":1,"name":"Read 20 minutes","cadence":"daily"}` | 404 unknown template |
 | POST | `/habits/<id>/checkins` | Optional `{"date":"YYYY-MM-DD"}` | `{"habit_id":1,"date":"YYYY-MM-DD"}` | 400 invalid body/date; 404 unknown habit |
 | GET | `/habits/<id>/streak` | Habit ID in path | `{"habit_id":1,"streak":3}` | 404 unknown habit |
-| GET | `/insights/<id>/weekly` | Habit ID in path | `{"habit_id":1,"window_days":7,"completed":1,"rate":0.14}` | 404 unknown habit |
+| GET | `/insights/<id>/weekly` | Habit ID in path | `{"habit_id":1,"window_days":7,"scheduled_days":3,"completed":1,"rate":0.33}` (rate = completed / scheduled days in the last 7 days) | 404 unknown habit |
 | GET | `/insights/<id>/milestones` | Habit ID in path | `{"milestones":[...]}` | 404 unknown habit |
 | GET | `/insights/<id>/summary` | Habit ID in path | `{"habit_id":1,"streak":3,"best_weekday":"Friday","milestones":[...]}` | 404 unknown habit |
 | GET | `/` | None | Responsive daily habit dashboard | — |
