@@ -1,34 +1,42 @@
 """Pure insight computations (no DB)."""
+
 import calendar
 from collections import Counter
-from datetime import date
+from collections.abc import Sequence
+from datetime import date, datetime
+from typing import TypeAlias
+
+CheckinDate: TypeAlias = date | datetime | str
 
 
-def completion_rate(done_days, window_days):
-    """Fraction of days in the window that were completed, 0.0 to 1.0."""
+def completion_rate(done_days: int, window_days: int) -> float:
+    """Calculate the completed fraction of a window, capped at one."""
     if window_days <= 0:
         raise ValueError("window_days must be positive")
     return min(done_days, window_days) / window_days
 
 
-def best_weekday(checkin_dates):
-    """Return the weekday with the most check-ins; tie-breaks by earliest weekday."""
+def best_weekday(checkin_dates: Sequence[CheckinDate]) -> str | None:
+    """Return the weekday with most check-ins, breaking ties Monday-first."""
     if not checkin_dates:
         return None
 
-    counts = Counter()
+    counts: Counter[str] = Counter()
     for value in checkin_dates:
-        if hasattr(value, "weekday"):
-            day = value.strftime("%A")
+        if isinstance(value, str):
+            checked_date = date.fromisoformat(value)
+        elif isinstance(value, datetime):
+            checked_date = value.date()
         else:
-            day = date.fromisoformat(value).strftime("%A")
+            checked_date = value
+        day = checked_date.strftime("%A")
         counts[day] += 1
 
     weekday_rank = {day: index for index, day in enumerate(calendar.day_name)}
     return max(counts.items(), key=lambda item: (item[1], -weekday_rank[item[0]]))[0]
 
 
-def milestone_kinds(streak_value):
-    """Return milestone names that are achieved at this streak length."""
+def milestone_kinds(streak_value: int) -> list[str]:
+    """List supported streak milestones reached at the given streak length."""
     targets = (7, 30, 90, 365)
     return [f"streak_{target}" for target in targets if streak_value >= target]

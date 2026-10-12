@@ -1,12 +1,10 @@
 """Pure streak logic for the habits domain (no DB, easy to unit test)."""
+
 from datetime import date, timedelta
 
 
-def current_daily_streak(checkin_dates, today):
-    """Count consecutive days ending today, or yesterday if not yet checked today.
-
-    A streak is still alive if you checked in yesterday but haven't yet today.
-    """
+def current_daily_streak(checkin_dates: list[date], today: date) -> int:
+    """Count consecutive days ending today or yesterday."""
     days = set(checkin_dates)
     cursor = today if today in days else today - timedelta(days=1)
     streak = 0
@@ -16,15 +14,13 @@ def current_daily_streak(checkin_dates, today):
     return streak
 
 
-def _previous_iso_week(anchor_date):
+def _previous_iso_week(anchor_date: date) -> tuple[int, int]:
+    """Return the ISO year and week immediately before the given date's week."""
     return (anchor_date - timedelta(days=7)).isocalendar()[:2]
 
 
-def current_weekly_streak(checkin_dates, today):
-    """Count consecutive weeks with a check-in, ending with the latest checked week.
-
-    If the current week has no check-in yet, the prior week can still keep the streak alive.
-    """
+def current_weekly_streak(checkin_dates: list[date], today: date) -> int:
+    """Count consecutive ISO weeks with check-ins, allowing the current week to be incomplete."""
     if not checkin_dates:
         return 0
 

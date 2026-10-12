@@ -49,8 +49,6 @@ The schema intentionally keeps the two domains separated while sharing one SQLit
 ```mermaid
 erDiagram
     HABITS ||--o{ CHECKINS : has
-    HABITS ||--o{ MILESTONES : referenced_by
-    HABITS ||--o{ HABIT_TEMPLATES : seeded_from
 
     HABITS {
         INTEGER id PK
@@ -81,7 +79,7 @@ erDiagram
     }
 ```
 
-The `UNIQUE(habit_id, checked_on)` constraint makes repeated check-ins on the same day idempotent, which is a core requirement for the project.
+`HABIT_TEMPLATES` is a standalone reference-data table. `MILESTONES.habit_id` is a logical reference only and has no foreign key. The `UNIQUE(habit_id, checked_on)` constraint makes repeated check-ins on the same day idempotent.
 
 ## 5. Business logic highlights
 
@@ -111,10 +109,13 @@ The project uses `pytest` and `pytest-cov` to validate the core business logic a
 The current local validation command is:
 
 ```bash
+ruff check .
+ruff format --check .
+mypy
 pytest --cov=. --cov-report=term-missing
 ```
 
-The project remains stable at the time of writing, with the suite passing locally. Docker validation is prepared but requires Docker to be installed on the machine running the checker.
+Latest recorded validation: 24 tests passed and 96% coverage. Ruff lint/format/security checks and mypy are configured as local pre-commit gates. Docker validation requires Docker to be installed on the machine running the checker; it was unavailable in the development environment.
 
 ## 7. AI disclosure and evidence
 

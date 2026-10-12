@@ -9,3 +9,4 @@ data/
 *.sqlite
 .env
 PROJECT_STATE.md
+RULES.md

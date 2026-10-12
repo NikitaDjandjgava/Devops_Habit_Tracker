@@ -1,6 +1,8 @@
+"""HTTP endpoints for habit statistics and milestones."""
+
 from datetime import date, timedelta
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, Response, jsonify
 
 from db import get_db
 from habits import public as habits_api  # seam: only import from habits.public
@@ -13,10 +15,14 @@ WINDOW_DAYS = 7
 
 
 @bp.get("/<int:habit_id>/weekly")
-def weekly(habit_id):
+def weekly(habit_id: int) -> Response | tuple[Response, int]:
+    """Return seven-day completion statistics for a habit."""
+    db = get_db()
+    if not habits_api.habit_exists(db, habit_id):
+        return jsonify(error="habit not found"), 404
     end = date.today()
     start = end - timedelta(days=WINDOW_DAYS - 1)
-    dates = habits_api.checkin_dates(get_db(), habit_id, start.isoformat(), end.isoformat())
+    dates = habits_api.checkin_dates(db, habit_id, start.isoformat(), end.isoformat())
     return jsonify(
         habit_id=habit_id,
         window_days=WINDOW_DAYS,
@@ -26,7 +32,8 @@ def weekly(habit_id):
 
 
 @bp.get("/<int:habit_id>/milestones")
-def milestones(habit_id):
+def milestones(habit_id: int) -> Response | tuple[Response, int]:
+    """Return recorded milestones or 404 when the habit is missing."""
     db = get_db()
     if not habits_api.habit_exists(db, habit_id):
         return jsonify(error="habit not found"), 404
@@ -34,7 +41,8 @@ def milestones(habit_id):
 
 
 @bp.get("/<int:habit_id>/summary")
-def summary(habit_id):
+def summary(habit_id: int) -> Response | tuple[Response, int]:
+    """Return the current streak, best weekday, and recorded milestones."""
     db = get_db()
     if not habits_api.habit_exists(db, habit_id):
         return jsonify(error="habit not found"), 404

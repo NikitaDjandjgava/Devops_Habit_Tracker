@@ -3,21 +3,31 @@
 In Assignment 2 each function here becomes an HTTP endpoint on the habits
 service. Insights must never import habits.repository or query habits tables.
 """
+
+import sqlite3
 from datetime import date
 
 from habits import repository
 from habits.streaks import current_daily_streak, current_weekly_streak
 
 
-def checkin_dates(db, habit_id, start=None, end=None):
+def checkin_dates(
+    db: sqlite3.Connection,
+    habit_id: int,
+    start: str | None = None,
+    end: str | None = None,
+) -> list[str]:
+    """Return sorted ISO check-in dates through the habits public boundary."""
     return repository.get_checkin_dates(db, habit_id, start, end)
 
 
-def habit_exists(db, habit_id):
+def habit_exists(db: sqlite3.Connection, habit_id: int) -> bool:
+    """Check whether a habit exists without exposing habits storage details."""
     return repository.get_habit(db, habit_id) is not None
 
 
-def current_streak(db, habit_id, today):
+def current_streak(db: sqlite3.Connection, habit_id: int, today: date) -> int:
+    """Calculate a habit's active streak according to its cadence."""
     habit = repository.get_habit(db, habit_id)
     if habit is None:
         return 0
