@@ -47,3 +47,6 @@ Local validation note: Docker is not installed in this environment (`docker: com
 | GET | `/insights/<id>/weekly` | 7-day completion rate |
 | GET | `/insights/<id>/milestones` | list recorded milestone achievements |
 | GET | `/insights/<id>/summary` | streak, best weekday, and milestone summary |
+
+## Project report
+See [REPORT.md](./REPORT.md) for the architecture overview, database diagram, SDLC notes, and final project summary.
