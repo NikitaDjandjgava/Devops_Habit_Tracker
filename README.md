@@ -1,6 +1,10 @@
-# Habit Tracker
+# HabitTracker
 
-A minimal, single-process Flask + SQLite application for recording daily or weekly habits and viewing completion insights. It is divided into two logically separable domains:
+A minimal, single-process Flask + SQLite application for recording scheduled habits and viewing completion insights. Habits can be assigned any combination of weekdays, a time of day, and an alert at the event time, 15 minutes before, or a custom interval before.
+
+The responsive browser dashboard is the primary interface. Browser notifications and in-page reminders are checked while the dashboard is open; reminders are not delivered when the app or browser is closed. Without notification permission, reminders appear as in-page notices.
+
+The application is divided into two logically separable domains:
 
 - **habits/**: habits, check-ins, streaks (owns `habits`, `checkins`, `habit_templates`)
 - **insights/**: weekly completion stats, milestones (owns `milestones`)
@@ -10,7 +14,7 @@ A minimal, single-process Flask + SQLite application for recording daily or week
     pip install -r requirements.txt
     python app.py            # http://localhost:8000
 
-Open `http://127.0.0.1:8000/` for the daily dashboard. You can add daily or weekly habits, use a seeded suggestion, and mark a habit complete or incomplete for the current period. The JSON API remains available for other clients.
+Open `http://127.0.0.1:8000/` for the dashboard. Add a habit, select its weekdays, time, and alert, then mark it complete on scheduled days. The JSON API remains available for other clients. Seeded habit templates remain accessible through the API for compatibility but are not presented in the dashboard.
 
 ## Run in Docker
     docker build -t habit-tracker .
@@ -51,8 +55,8 @@ Local validation note: Docker is not installed in this environment (`docker: com
 | Method | Path | Input | Successful JSON response | Errors |
 |---|---|---|---|---|
 | GET | `/health` | None | `{"status":"ok"}` | — |
-| POST | `/habits` | `{"name":"Read","cadence":"daily"}` (`cadence` optional) | `{"id":1,"name":"Read","cadence":"daily"}` | 400 invalid body/name/cadence |
-| GET | `/habits` | None | Array of `{id,name,cadence}` | — |
+| POST | `/habits` | `{"name":"Read","days_of_week":[0,2,4],"time_of_day":"07:30","alert_type":"custom","alert_amount":2,"alert_unit":"hours"}` (or legacy `cadence`) | Habit object including schedule fields | 400 invalid body/name/schedule |
+| GET | `/habits` | None | Array of habit objects including `days_of_week`, `time_of_day`, and alert fields | — |
 | GET | `/habits/templates` | None | Array of `{id,name,cadence}` | — |
 | POST | `/habits/from-template/<id>` | Template ID in path | `{"id":1,"name":"Read 20 minutes","cadence":"daily"}` | 404 unknown template |
 | POST | `/habits/<id>/checkins` | Optional `{"date":"YYYY-MM-DD"}` | `{"habit_id":1,"date":"YYYY-MM-DD"}` | 400 invalid body/date; 404 unknown habit |
@@ -61,13 +65,14 @@ Local validation note: Docker is not installed in this environment (`docker: com
 | GET | `/insights/<id>/milestones` | Habit ID in path | `{"milestones":[...]}` | 404 unknown habit |
 | GET | `/insights/<id>/summary` | Habit ID in path | `{"habit_id":1,"streak":3,"best_weekday":"Friday","milestones":[...]}` | 404 unknown habit |
 | GET | `/` | None | Responsive daily habit dashboard | — |
-| POST | `/ui/habits` | Form fields `name`, `cadence` | Redirects to dashboard with status message | Invalid form is reported on dashboard |
-| POST | `/ui/habits/<id>/toggle` | Habit ID in path | Redirects after toggling current-day/week check-in | Unknown habit is reported on dashboard |
+| POST | `/ui/habits` | Form fields `name`, repeated `days_of_week`, `time_of_day`, and alert fields | Redirects to dashboard with status message | Invalid form is reported on dashboard |
+| POST | `/ui/habits/<id>/toggle` | Habit ID in path | Redirects after toggling today's scheduled check-in | Unknown or unscheduled habit is reported on dashboard |
+| GET | `/ui/reminders` | Browser-local `now=YYYY-MM-DDTHH:MM` | `{"reminders":[...]}` for the current minute | 400 invalid local date/time |
 
 ## Inputs, responses, and limitations
-Habit creation accepts a JSON object with a non-empty `name` and an optional `cadence` of `daily` or `weekly`. Check-ins accept an optional canonical `YYYY-MM-DD` date. Invalid input returns HTTP 400; unknown habit or template IDs return HTTP 404. IDs in route paths must be positive integers.
+Habit creation accepts a JSON object with a non-empty `name` and a non-empty, duplicate-free list of weekday numbers (`0` Monday through `6` Sunday). `time_of_day` uses 24-hour `HH:MM`. Alerts are `at_time`, `15_before`, or `custom`; custom amounts are 1–1440 minutes or 1–24 hours. Legacy clients can omit `days_of_week` and provide `cadence` (`daily` maps to all days; `weekly` maps to Monday). Check-ins accept an optional canonical `YYYY-MM-DD` date. Invalid input returns HTTP 400; unknown habit or template IDs return HTTP 404. IDs in route paths must be positive integers.
 
-Dates and streaks use the server's local date, and the app does not provide accounts, authentication, or per-user time zones. The health endpoint detects whether the process responds; the container checker separately verifies the HTTP health response. For maintenance, run the quality-check commands above after code changes and keep dependencies reviewed and updated.
+Dates and streaks use the server's local date; reminders use the browser's local clock, and the app does not provide accounts or per-user time-zone storage. Reminder polling runs only while the dashboard is open. Existing databases receive additive schedule columns on startup; old daily habits migrate to all weekdays and old weekly habits to Monday. The health endpoint detects whether the process responds; the container checker separately verifies the HTTP health response. For maintenance, run the quality-check commands above after code changes and keep dependencies reviewed and updated.
 
 ## Project report
 See [REPORT.md](./REPORT.md) for the architecture overview, database diagram, SDLC notes, and final project summary.

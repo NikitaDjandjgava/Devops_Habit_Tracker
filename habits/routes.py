@@ -7,6 +7,7 @@ from flask import Blueprint, Response, jsonify, request
 from db import get_db
 from habits import public as habits_api
 from habits import repository
+from habits.schedule import parse_schedule
 
 bp = Blueprint("habits", __name__, url_prefix="/habits")
 
@@ -18,12 +19,21 @@ def create() -> Response | tuple[Response, int]:
     if not isinstance(data, dict):
         return jsonify(error="request body must be a JSON object"), 400
     name = data.get("name")
-    cadence = data.get("cadence", "daily")
-    if not isinstance(name, str) or not name.strip() or cadence not in ("daily", "weekly"):
-        return jsonify(error="name required; cadence must be 'daily' or 'weekly'"), 400
+    schedule = parse_schedule(data)
+    if not isinstance(name, str) or not name.strip() or schedule is None:
+        return jsonify(error="invalid name or schedule"), 400
     name = name.strip()
-    habit_id = repository.create_habit(get_db(), name, cadence)
-    return jsonify(id=habit_id, name=name, cadence=cadence), 201
+    cadence = "daily" if len(schedule["days_of_week"]) == 7 else "weekly"
+    habit_id = repository.create_habit(
+        get_db(),
+        name,
+        cadence,
+        schedule["days_of_week"],
+        schedule["time_of_day"],
+        schedule["alert_type"],
+        schedule["alert_offset_minutes"],
+    )
+    return jsonify(id=habit_id, name=name, cadence=cadence, **schedule), 201
 
 
 @bp.get("")
@@ -34,7 +44,7 @@ def list_all() -> Response:
 
 @bp.get("/templates")
 def list_templates() -> Response:
-    """Return available seeded habit templates."""
+    """Return seeded templates for API clients that use them."""
     return jsonify(repository.list_templates(get_db()))
 
 

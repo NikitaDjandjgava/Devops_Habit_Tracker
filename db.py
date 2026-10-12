@@ -23,8 +23,29 @@ def init_db(db_path: str | Path) -> None:
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     with closing(connect(db_path)) as conn:
         conn.executescript((BASE_DIR / "schema.sql").read_text())
+        _ensure_schedule_columns(conn)
         _seed_habit_templates(conn)
         conn.commit()
+
+
+def _ensure_schedule_columns(conn: sqlite3.Connection) -> None:
+    """Add schedule fields to existing habit tables without changing stored habits."""
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(habits)").fetchall()}
+    new_columns = {
+        "days_of_week": (
+            "ALTER TABLE habits ADD COLUMN days_of_week " "TEXT NOT NULL DEFAULT '0,1,2,3,4,5,6'"
+        ),
+        "time_of_day": "ALTER TABLE habits ADD COLUMN time_of_day TEXT NOT NULL DEFAULT '09:00'",
+        "alert_type": "ALTER TABLE habits ADD COLUMN alert_type TEXT NOT NULL DEFAULT 'at_time'",
+        "alert_offset_minutes": (
+            "ALTER TABLE habits ADD COLUMN alert_offset_minutes INTEGER NOT NULL DEFAULT 0"
+        ),
+    }
+    for name, statement in new_columns.items():
+        if name not in columns:
+            conn.execute(statement)
+    if "days_of_week" not in columns:
+        conn.execute("UPDATE habits SET days_of_week = '0' WHERE cadence = 'weekly'")
 
 
 def _seed_habit_templates(conn: sqlite3.Connection) -> None:

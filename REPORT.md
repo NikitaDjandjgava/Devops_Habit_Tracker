@@ -1,8 +1,8 @@
-# Habit Tracker Project Report
+# HabitTracker Project Report
 
 ## 1. Project overview
 
-This project delivers a small Flask + SQLite habit tracker that follows the assignment constraints for a single-process, single-container application. The software is organized into two logical domains:
+This project delivers HabitTracker, a small Flask + SQLite habit tracker that follows the assignment constraints for a single-process, single-container application. Its responsive browser dashboard supports per-weekday schedules, times, and configurable browser/in-page reminders while open. The software is organized into two logical domains:
 
 - `habits/`: habit records, check-ins, daily/weekly streak logic, and template data
 - `insights/`: completion-rate calculations, milestone detection, and summary endpoints
@@ -25,7 +25,7 @@ The timeline was compressed relative to the ideal assignment plan, but the proce
 
 ## 3. Architecture
 
-The application runs as a single Flask process and serves a responsive HTML dashboard together with JSON routes for habits and insights. All surfaces use the same SQLite database under the configured `DATA_DIR`, which keeps the project within the single-container requirement.
+The application runs as a single Flask process and serves a responsive HTML dashboard together with JSON routes for habits and insights. The dashboard polls for due reminders while open; it does not use a background worker and cannot deliver reminders when the dashboard is closed. All surfaces use the same SQLite database under the configured `DATA_DIR`, which keeps the project within the single-container requirement.
 
 ```mermaid
 flowchart LR
@@ -54,6 +54,10 @@ erDiagram
         INTEGER id PK
         TEXT name
         TEXT cadence
+        TEXT days_of_week
+        TEXT time_of_day
+        TEXT alert_type
+        INTEGER alert_offset_minutes
         TEXT created_at
     }
 
@@ -85,8 +89,9 @@ erDiagram
 
 The habits logic is intentionally pure and unit-testable:
 
-- `current_daily_streak()` counts consecutive days ending on today or yesterday.
-- `current_weekly_streak()` counts consecutive ISO weeks with a check-in.
+- `parse_schedule()` validates weekday, time, and alert inputs and normalizes custom offsets.
+- `current_scheduled_streak()` counts consecutive scheduled dates, ignoring unscheduled days.
+- `due_reminders()` matches current local minutes to each incomplete habit's alert time, including alerts that cross midnight.
 - `completion_rate()` computes the fraction of completed days in a window.
 
 The insights logic then builds on those values:
@@ -100,8 +105,9 @@ The insights logic then builds on those values:
 The project uses `pytest` and `pytest-cov` to validate the core business logic and key route behavior. The suite checks:
 
 - app creation and environment configuration
-- database bootstrapping and idempotent seeding
+- database bootstrapping, idempotent seeding, and additive migration of an existing schema
 - streak logic for daily and weekly behaviors
+- schedule validation, persistence, scheduled-day toggles, and reminder timing
 - completion-rate calculations
 - habit creation, check-in idempotency, and errors for missing records
 - template creation and insight summary endpoints
@@ -115,7 +121,7 @@ mypy
 pytest --cov=. --cov-report=term-missing
 ```
 
-Latest recorded validation: 30 tests passed and 98% coverage. Ruff lint/format/security checks and mypy are configured as local pre-commit gates. Docker validation requires Docker to be installed on the machine running the checker; it was unavailable in the development environment.
+Latest validation: 40 tests passed with 93% total coverage; Ruff lint, formatting, mypy, Python compilation, and `git diff --check` passed. Ruff lint/format/security checks and mypy are configured as local pre-commit gates. Docker validation requires Docker to be installed on the machine running the checker; it was unavailable in the development environment.
 
 ## 7. AI disclosure and evidence
 

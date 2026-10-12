@@ -66,6 +66,8 @@ a { color: inherit; text-decoration: none; }
 .crumb-slash { color: #d1d1c8; }
 .topbar-right { display: flex; align-items: center; gap: 16px; }
 .date-pill { padding: 9px 12px; border: 1px solid #e7e6de; border-radius: 20px; color: #666b61; font-size: 10px; }
+.reminder-button { padding: 8px 11px; border: 1px solid #dfe4d4; border-radius: 20px; background: #f0f3e8; color: #5d704a; font-size: 9px; font-weight: 600; }
+.reminder-button:hover { border-color: #a9ba8d; }
 .status-dot { display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: #9ab370; vertical-align: 1px; }
 .avatar-small { width: 30px; height: 30px; font-size: 11px; }
 
@@ -104,10 +106,7 @@ h1 { margin: 0; font-size: clamp(28px, 3.1vw, 41px); font-weight: 700; letter-sp
 .progress-copy > strong { font-family: Manrope, "Segoe UI", sans-serif; font-size: 22px; letter-spacing: -1px; }
 .progress-copy > strong span { color: #a1a398; font-size: 13px; font-weight: 500; }
 .progress-copy p { margin: 2px 0 9px; color: #92958b; font-size: 10px; line-height: 1.5; }
-.mini-avatars { display: flex; }
-.mini-avatars i { display: grid; width: 19px; height: 19px; margin-right: -4px; place-items: center; border: 2px solid white; border-radius: 50%; background: #e8eddb; color: #71834f; font-size: 9px; font-style: normal; }
-.mini-avatars i:nth-child(2) { background: #f8e5d5; color: #ba8067; }
-.mini-avatars i:nth-child(3) { background: #eae4f4; color: #81739a; }
+.schedule-caption { color: #82916e; font-size: 9px; }
 .progress-footer { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-top: 1px solid #f0efe9; color: #92958a; font-size: 9px; }
 .footer-arrow { color: #84996b; font-size: 15px; }
 .quote-card { display: flex; flex-direction: column; justify-content: center; padding: 25px 31px; background: #e8e2f1; }
@@ -140,6 +139,9 @@ h1 { margin: 0; font-size: clamp(28px, 3.1vw, 41px); font-weight: 700; letter-sp
 .habit-details h3 { overflow: hidden; margin: 0 0 7px; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .habit-meta { display: flex; align-items: center; gap: 8px; color: #9a9c93; font-size: 8px; letter-spacing: .8px; }
 .cadence-tag { padding: 3px 7px; border-radius: 5px; background: #f2f1eb; color: #767a70; font-size: 8px; text-transform: capitalize; letter-spacing: 0; }
+.habit-schedule { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.habit-schedule span { padding: 3px 6px; border-radius: 5px; background: #f3f3ed; color: #767b70; font-size: 8px; }
+.habit-card:not(.habit-card-done) .habit-meta > span:last-child { color: #97998f; }
 .habit-streak { display: flex; min-width: 85px; align-items: center; justify-content: flex-end; gap: 4px; color: #85887d; }
 .streak-fire { color: #de987d; font-size: 12px; }
 .habit-streak strong { color: #454940; font-family: Manrope, "Segoe UI", sans-serif; font-size: 12px; }
@@ -147,6 +149,7 @@ h1 { margin: 0; font-size: clamp(28px, 3.1vw, 41px); font-weight: 700; letter-sp
 .check-form { margin: 0; }
 .check-button { display: flex; min-width: 93px; align-items: center; justify-content: center; gap: 6px; padding: 8px 10px; border: 1px solid #e5e6dd; border-radius: 8px; background: transparent; color: #777b70; font-size: 9px; font-weight: 600; transition: .2s; }
 .check-button:hover { border-color: #9bb17d; color: var(--green); }
+.check-button:disabled { cursor: not-allowed; border-color: #efeee9; background: #f8f7f3; color: #b3b4ac; }
 .check-empty { width: 12px; height: 12px; border: 1px solid #bec2b5; border-radius: 4px; }
 .check-button-done { border-color: #dce9c6; background: #edf3e3; color: #577246; }
 .check-button-done > span:first-child { font-size: 12px; }
@@ -171,10 +174,23 @@ h1 { margin: 0; font-size: clamp(28px, 3.1vw, 41px); font-weight: 700; letter-sp
 .dialog-top h2 { margin-bottom: 0; font-size: 22px; letter-spacing: -.8px; }
 .dialog-close { width: 29px; height: 29px; border: 0; border-radius: 50%; background: #f0efe8; color: #64685e; font-size: 18px; }
 .habit-dialog label { margin-top: 6px; color: #666b60; font-size: 10px; font-weight: 600; }
+.weekday-field { padding: 0; border: 0; margin: 4px 0 0; }
+.weekday-field legend { color: #666b60; font-size: 10px; font-weight: 600; }
+.field-hint { margin: 4px 0 10px; color: #97998f; font-size: 9px; }
+.weekday-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.weekday-choice { position: relative; margin: 0 !important; cursor: pointer; }
+.weekday-choice input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.weekday-choice span { display: grid; height: 38px; place-items: center; border: 1px solid #e5e6dc; border-radius: 9px; background: #fbfaf6; color: #85897e; font-size: 9px; }
+.weekday-choice input:checked + span { border-color: #a7b992; background: #edf2e5; color: #486340; font-weight: 700; }
+.weekday-choice input:focus-visible + span { outline: 2px solid #7f9864; outline-offset: 2px; }
 .habit-dialog input, .habit-dialog select { width: 100%; height: 42px; padding: 0 12px; border: 1px solid #e5e6dc; border-radius: 8px; outline: none; background: #fbfaf6; color: #44483f; font-size: 11px; }
+.custom-alert-fields[hidden] { display: none; }
+.custom-alert-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .habit-dialog input:focus, .habit-dialog select:focus { border-color: #92a978; box-shadow: 0 0 0 3px rgb(146 169 120 / 16%); }
 .dialog-submit { display: flex; justify-content: space-between; margin-top: 10px; padding: 12px 14px; border: 0; border-radius: 8px; background: var(--green); color: white; font-size: 11px; font-weight: 600; }
 .dialog-submit span { color: var(--lime); font-size: 15px; }
+.reminder-toast { position: fixed; right: 24px; bottom: 24px; z-index: 10; max-width: min(360px, calc(100vw - 32px)); padding: 14px 18px; border: 1px solid #dbe4cf; border-radius: 12px; background: #fffefa; box-shadow: 0 12px 40px rgb(43 48 37 / 14%); color: #435b39; font-size: 12px; opacity: 0; pointer-events: none; transform: translateY(12px); transition: opacity .2s, transform .2s; }
+.reminder-toast-visible { opacity: 1; transform: translateY(0); }
 
 @media (min-width: 1100px) {
   .welcome { min-height: 190px; margin-top: 25px; }
@@ -206,6 +222,7 @@ h1 { margin: 0; font-size: clamp(28px, 3.1vw, 41px); font-weight: 700; letter-sp
   .topbar { height: 54px; }
   .topbar-right { gap: 0; }
   .avatar-small { display: none; }
+  .reminder-button { margin-right: 8px; padding: 7px 8px; font-size: 8px; }
   .date-pill { padding: 7px 9px; font-size: 9px; }
   .welcome { min-height: 180px; margin-top: 18px; padding: 26px 23px; }
   h1 { max-width: 280px; font-size: clamp(28px, 8vw, 38px); }
@@ -227,6 +244,8 @@ h1 { margin: 0; font-size: clamp(28px, 3.1vw, 41px); font-weight: 700; letter-sp
   .habit-card { min-height: 71px; gap: 10px; padding: 10px; }
   .habit-symbol { width: 39px; height: 39px; flex-basis: 39px; }
   .habit-details h3 { max-width: 130px; font-size: 11px; }
+  .habit-schedule { gap: 3px; }
+  .habit-schedule span { padding: 3px 4px; font-size: 7px; }
   .habit-streak { min-width: 55px; gap: 3px; }
   .habit-streak > span:last-child { max-width: 29px; font-size: 7px; line-height: 1.15; }
   .check-button { min-width: 38px; padding: 8px; }

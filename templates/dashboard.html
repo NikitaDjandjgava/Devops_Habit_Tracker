@@ -4,15 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f6f5f0">
-  <title>Today | Habit Grove</title>
+  <title>Today | HabitTracker</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" aria-label="Main navigation">
-      <a class="brand" href="{{ url_for('ui.dashboard') }}" aria-label="Habit Grove home">
+      <a class="brand" href="{{ url_for('ui.dashboard') }}" aria-label="HabitTracker home">
         <span class="brand-mark" aria-hidden="true">g</span>
-        <span>habit<span class="brand-light">grove</span></span>
+        <span>Habit<span class="brand-light">Tracker</span></span>
       </a>
       <div class="nav-label">YOUR SPACE</div>
       <a class="nav-item nav-item-active" href="{{ url_for('ui.dashboard') }}">
@@ -37,6 +37,7 @@
         <div class="breadcrumb"><span>My space</span><span class="crumb-slash">/</span><strong>Today</strong></div>
         <div class="topbar-right">
           <span class="date-pill"><span class="status-dot"></span> {{ today.strftime("%A, %B") }} {{ today.day }}</span>
+          <button type="button" class="reminder-button" id="enable-reminders">Enable reminders</button>
           <span class="avatar-small" aria-label="Your profile">Y</span>
         </div>
       </header>
@@ -83,9 +84,9 @@
               <div class="ring-label"><strong>{{ completion_percent }}%</strong><span>complete</span></div>
             </div>
             <div class="progress-copy">
-              <strong>{{ completed_count }} <span>of {{ habits|length }}</span></strong>
+              <strong>{{ completed_count }} <span>of {{ scheduled_habits|length }}</span></strong>
               <p>habits on track<br>for their schedule</p>
-              <div class="mini-avatars" aria-hidden="true"><i>✦</i><i>•</i><i>✿</i></div>
+              <span class="schedule-caption">Scheduled for today</span>
             </div>
           </div>
           <div class="progress-footer"><span>Keep your rhythm</span><span class="footer-arrow">↗</span></div>
@@ -118,16 +119,22 @@
               <div class="habit-details">
                 <h3>{{ habit.name }}</h3>
                 <div class="habit-meta">
-                  <span class="cadence-tag">{{ habit.cadence }}</span>
+                  <span class="cadence-tag">{{ habit.schedule_label }}</span>
                   <span>{{ habit.period_label }}</span>
+                </div>
+                <div class="habit-schedule">
+                  <span>{{ habit.days_label }}</span>
+                  <span>{{ habit.time_label }}</span>
+                  <span>{{ habit.alert_label }}</span>
                 </div>
               </div>
               <div class="habit-streak"><span class="streak-fire" aria-hidden="true">↗</span><strong>{{ habit.streak }}</strong><span>{{ habit.streak_label }}</span></div>
               <form class="check-form" method="post" action="{{ url_for('ui.toggle_checkin', habit_id=habit.id) }}">
                 <button class="check-button {% if habit.completed %}check-button-done{% endif %}"
+                  {% if not habit.scheduled_today %}disabled{% endif %}
                   type="submit" aria-label="{% if habit.completed %}Mark {{ habit.name }} incomplete{% else %}Complete {{ habit.name }}{% endif %}">
                   {% if habit.completed %}<span aria-hidden="true">✓</span>{% else %}<span class="check-empty" aria-hidden="true"></span>{% endif %}
-                  <span class="check-text">{% if habit.completed %}Done{% else %}Mark done{% endif %}</span>
+                  <span class="check-text">{% if not habit.scheduled_today %}Not today{% elif habit.completed %}Done{% else %}Mark done{% endif %}</span>
                 </button>
               </form>
             </article>
@@ -152,22 +159,38 @@
         <div><p class="eyebrow">A NEW BEGINNING</p><h2 id="dialog-title">Add a habit</h2></div>
         <button type="button" class="dialog-close" aria-label="Close dialog" data-close-dialog>×</button>
       </div>
-      <label for="habit-name">What would you like to do?</label>
+      <label for="habit-name">Habit</label>
       <input id="habit-name" name="name" type="text" maxlength="80" placeholder="e.g. Read for 15 minutes" required>
-      <label for="habit-cadence">How often?</label>
-      <select id="habit-cadence" name="cadence">
-        <option value="daily">Every day</option>
-        <option value="weekly">Once a week</option>
-      </select>
-      {% if templates %}
-        <label for="habit-template">Or start with a suggestion</label>
-        <select id="habit-template" data-template-select>
-          <option value="">Choose a suggestion (optional)</option>
-          {% for template in templates %}
-            <option value="{{ template.name }}" data-cadence="{{ template.cadence }}">{{ template.name }}</option>
+      <fieldset class="weekday-field">
+        <legend>Days of the week</legend>
+        <p class="field-hint">Select each day you want this habit on your calendar.</p>
+        <div class="weekday-grid" role="group" aria-label="Select days of the week">
+          {% for day in [("Mon", 0), ("Tue", 1), ("Wed", 2), ("Thu", 3), ("Fri", 4), ("Sat", 5), ("Sun", 6)] %}
+            <label class="weekday-choice">
+              <input type="checkbox" name="days_of_week" value="{{ day[1] }}" {% if day[1] < 5 %}checked{% endif %}>
+              <span>{{ day[0] }}</span>
+            </label>
           {% endfor %}
-        </select>
-      {% endif %}
+        </div>
+      </fieldset>
+      <label for="habit-time">Time</label>
+      <input id="habit-time" name="time_of_day" type="time" value="09:00" required>
+      <label for="alert-type">Alert type</label>
+      <select id="alert-type" name="alert_type">
+        <option value="15_before">15 minutes before</option>
+        <option value="at_time">At time of event</option>
+        <option value="custom">Custom amount before</option>
+      </select>
+      <div class="custom-alert-fields" id="custom-alert-fields" hidden>
+        <label for="alert-amount">Custom amount</label>
+        <div class="custom-alert-row">
+          <input id="alert-amount" name="alert_amount" type="number" min="1" max="1440" value="30">
+          <select id="alert-unit" name="alert_unit" aria-label="Custom alert time unit">
+            <option value="minutes">Minutes</option>
+            <option value="hours">Hours</option>
+          </select>
+        </div>
+      </div>
       <button type="submit" class="dialog-submit">Add to my habits <span aria-hidden="true">→</span></button>
     </form>
   </dialog>
@@ -184,15 +207,79 @@
     dialog.addEventListener("click", (event) => {
       if (event.target === dialog) dialog.close();
     });
-    const templateSelect = document.querySelector("[data-template-select]");
-    if (templateSelect) {
-      templateSelect.addEventListener("change", () => {
-        const option = templateSelect.selectedOptions[0];
-        if (!option.value) return;
-        nameInput.value = option.value;
-        document.querySelector("#habit-cadence").value = option.dataset.cadence;
-      });
+    const alertType = document.querySelector("#alert-type");
+    const customAlertFields = document.querySelector("#custom-alert-fields");
+    const alertAmount = document.querySelector("#alert-amount");
+    const alertUnit = document.querySelector("#alert-unit");
+    alertType.addEventListener("change", () => {
+      customAlertFields.hidden = alertType.value !== "custom";
+      alertAmount.required = alertType.value === "custom";
+    });
+    alertUnit.addEventListener("change", () => {
+      alertAmount.max = alertUnit.value === "hours" ? "24" : "1440";
+      if (Number(alertAmount.value) > Number(alertAmount.max)) alertAmount.value = alertAmount.max;
+    });
+
+    const notificationButton = document.querySelector("#enable-reminders");
+    const deliveredReminders = new Set();
+    const toast = document.createElement("div");
+    toast.className = "reminder-toast";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    document.body.append(toast);
+    function showReminderMessage(message) {
+      toast.textContent = message;
+      toast.classList.add("reminder-toast-visible");
+      window.setTimeout(() => toast.classList.remove("reminder-toast-visible"), 8000);
     }
+    notificationButton.addEventListener("click", async () => {
+      if (!("Notification" in window)) {
+        notificationButton.textContent = "In-app reminders on";
+        showReminderMessage("Browser notifications are unavailable. In-app reminders will still appear.");
+        return;
+      }
+      try {
+        const permission = await Notification.requestPermission();
+        notificationButton.textContent = permission === "granted" ? "Reminders enabled" : "In-app reminders on";
+      } catch (error) {
+        notificationButton.textContent = "In-app reminders on";
+        showReminderMessage("Browser notification permission could not be requested. In-app reminders remain on.");
+        console.error("Could not request browser notification permission.", error);
+      }
+    });
+    function localDateTime() {
+      const now = new Date();
+      const pad = (value) => String(value).padStart(2, "0");
+      return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    }
+    async function checkReminders() {
+      try {
+        const response = await fetch(`{{ url_for('ui.reminders') }}?now=${encodeURIComponent(localDateTime())}`);
+        if (!response.ok) throw new Error(`Reminder request failed with status ${response.status}.`);
+        const result = await response.json();
+        if (!Array.isArray(result.reminders)) throw new Error("Reminder response did not contain a reminder list.");
+        result.reminders.forEach((reminder) => {
+          const key = `${reminder.id}:${reminder.date}:${reminder.time}`;
+          if (deliveredReminders.has(key)) return;
+          deliveredReminders.add(key);
+          const message = `${reminder.name} is scheduled for ${reminder.time}.`;
+          showReminderMessage(message);
+          if ("Notification" in window && Notification.permission === "granted") {
+            try {
+              new Notification("HabitTracker reminder", { body: message });
+            } catch (error) {
+              console.error("Could not display browser notification.", error);
+              showReminderMessage(`${message} (Browser notification could not be displayed.)`);
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Could not check HabitTracker reminders.", error);
+        showReminderMessage("Reminders could not be checked. Please keep HabitTracker open and try again.");
+      }
+    }
+    checkReminders();
+    window.setInterval(checkReminders, 15000);
   </script>
 </body>
 </html>

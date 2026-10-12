@@ -3,6 +3,10 @@ CREATE TABLE IF NOT EXISTS habits (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT NOT NULL,
     cadence    TEXT NOT NULL CHECK (cadence IN ('daily', 'weekly')),
+    days_of_week TEXT NOT NULL DEFAULT '0,1,2,3,4,5,6',
+    time_of_day TEXT NOT NULL DEFAULT '09:00',
+    alert_type TEXT NOT NULL DEFAULT 'at_time',
+    alert_offset_minutes INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (date('now'))
 );
 

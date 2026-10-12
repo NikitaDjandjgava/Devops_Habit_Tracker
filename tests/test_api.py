@@ -16,6 +16,32 @@ def test_create_habit_validates_input(client: FlaskClient) -> None:
     assert client.post("/habits", json=["not", "an", "object"]).status_code == 400
 
 
+def test_create_habit_persists_weekdays_time_and_alert(client: FlaskClient) -> None:
+    response = client.post(
+        "/habits",
+        json={
+            "name": "Walk",
+            "days_of_week": [0, 2, 4],
+            "time_of_day": "07:30",
+            "alert_type": "custom",
+            "alert_amount": 2,
+            "alert_unit": "hours",
+        },
+    )
+    assert response.status_code == 201
+    assert response.get_json()["days_of_week"] == [0, 2, 4]
+    assert response.get_json()["time_of_day"] == "07:30"
+    assert response.get_json()["alert_offset_minutes"] == 120
+
+
+def test_create_habit_rejects_invalid_schedule(client: FlaskClient) -> None:
+    response = client.post(
+        "/habits",
+        json={"name": "Walk", "days_of_week": [], "time_of_day": "25:90"},
+    )
+    assert response.status_code == 400
+
+
 def test_checkin_is_idempotent_and_streak_counts(client: FlaskClient) -> None:
     hid = make_habit(client)
     for _ in range(2):  # same day twice

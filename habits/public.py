@@ -8,7 +8,7 @@ import sqlite3
 from datetime import date
 
 from habits import repository
-from habits.streaks import current_daily_streak, current_weekly_streak
+from habits.schedule import current_scheduled_streak
 
 
 def checkin_dates(
@@ -33,6 +33,4 @@ def current_streak(db: sqlite3.Connection, habit_id: int, today: date) -> int:
         return 0
 
     dates = [date.fromisoformat(d) for d in repository.get_checkin_dates(db, habit_id)]
-    if habit["cadence"] == "weekly":
-        return current_weekly_streak(dates, today)
-    return current_daily_streak(dates, today)
+    return current_scheduled_streak(dates, habit["days_of_week"], today)

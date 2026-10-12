@@ -17,7 +17,7 @@ from ui.routes import bp as ui_bp
 
 def create_app(data_dir: str | None = None) -> Flask:
     """Create the Flask application using the requested data directory."""
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder="static", template_folder="templates")
     app.secret_key = os.environ.get("FLASK_SECRET_KEY") or os.urandom(32)
     data_dir = data_dir or os.environ.get("DATA_DIR") or "data"
     app.config["DB_PATH"] = os.path.join(data_dir, "habits.db")
