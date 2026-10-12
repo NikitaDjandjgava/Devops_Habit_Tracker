@@ -45,9 +45,9 @@ The application runs as a single Flask process and serves a responsive HTML dash
 flowchart LR
     A[Browser / API caller] --> B[Flask app in app.py]
     subgraph HabitsDomain[Habits domain]
-        U[ui/routes.py dashboard]
+        U[ui/routes.py Today + Calendar pages]
         C[habits/routes.py]
-        S[habits/schedule.py pure logic]
+        S[habits/schedule.py + agenda.py pure logic]
         E[habits/repository.py]
         F[habits/public.py]
     end
@@ -121,6 +121,7 @@ The habits logic is intentionally pure and unit-testable:
 
 - `parse_schedule()` validates weekday, time, and alert inputs and normalizes custom offsets.
 - `current_scheduled_streak()` counts consecutive scheduled dates, ignoring unscheduled days.
+- `month_weeks()` and `hourly_slots()` in `habits/agenda.py` lay out the Calendar month grid and Today's hour-by-hour timeline from each habit's `days_of_week` and `time_of_day`.
 - `due_reminders()` matches current local minutes to each incomplete habit's alert time, including alerts that cross midnight.
 - `completion_rate()` computes the fraction of completed days in a window.
 - `scheduled_day_count()` counts how many days in the window the habit was actually due, so a Monday-only habit is measured out of 1 day, not 7.
@@ -142,6 +143,7 @@ The project uses `pytest` and `pytest-cov` to validate the core business logic a
 - completion-rate calculations
 - habit creation, check-in idempotency, and errors for missing records
 - template creation and insight summary endpoints
+- calendar month grid, hourly timeline slots, habit colors, and habit deletion
 
 The current local validation command is:
 
@@ -152,14 +154,64 @@ mypy
 pytest --cov=. --cov-report=term-missing
 ```
 
-Latest validation (2026-10-12): 42 tests passed with 93% total coverage; Ruff lint, formatting, mypy, Python compilation, and `git diff --check` passed. Ruff lint/format/security checks and mypy are configured as local pre-commit gates. Docker validation requires Docker to be installed on the machine running the checker; it was unavailable in the development environment.
+Latest validation (2026-10-12): 53 tests passed with 95% total coverage; Ruff lint, formatting, mypy, Python compilation, and `git diff --check` passed. Ruff lint/format/security checks and mypy are configured as local pre-commit gates. Docker validation requires Docker to be installed on the machine running the checker; it was unavailable in the development environment.
 
-## 7. AI disclosure and evidence
+### What the tests cover thinly, and why
+
+| File | Coverage | Not covered |
+|---|---|---|
+| `habits/schedule.py` | 82% | Some rejection branches of `parse_schedule` (non-string time, out-of-range custom amounts) |
+| `ui/routes.py` | 84% | Part of `/ui/reminders` parsing and some alert labels in `dashboard()` |
+| `app.py` | 95% | The `if __name__ == "__main__"` start line, which is exercised by running the app, not by pytest |
+
+The pure modules (`habits/agenda.py`, `insights/stats.py`, `habits/streaks.py`, `db.py`) are at 96-100% because they carry the business rules. Route files are tested mainly for status codes and error paths, as ADR-4 describes. Browser-side JavaScript (reminder polling, delete confirmation, timeline scrolling) has no automated tests and was checked by hand in the browser.
+
+## 7. Container contract (§7)
+
+| Requirement | How the app meets it |
+|---|---|
+| One start command | `python app.py`, which is also the Dockerfile `CMD` |
+| Bind `0.0.0.0` | `create_app().run(host="0.0.0.0", ...)` in `app.py` |
+| Port from env | `int(os.environ.get("PORT", "8000"))` |
+| No interactive setup | `init_db` runs on startup inside `create_app`; nothing prompts for input |
+| Configurable SQLite path | `$DATA_DIR/habits.db`, default `data/habits.db`; `init_db` creates the folder |
+| No external runtime dependency | Only Flask and the standard-library `sqlite3` module |
+| One manifest | `requirements.txt` at the root; ruff and mypy settings live in `ruff.toml` and `mypy.ini`, because the checker treats any `pyproject.toml` as a second manifest |
+| Env-only configuration | `PORT`, `DATA_DIR`, optional `FLASK_SECRET_KEY`; no `.env` file is read |
+| Ready within seconds | Startup is schema creation plus one small seed insert |
+| Seed data as code | `seed.json`, inserted by `_seed_habit_templates` only when `habit_templates` is empty |
+| No destructive boot | `schema.sql` uses only `CREATE TABLE IF NOT EXISTS`; `_ensure_schedule_columns` only adds missing columns |
+
+A manual check on 2026-10-12 started the app twice on the same empty `DATA_DIR` with `PORT=8123`. It bound all interfaces and kept 5 templates and 1 habit after the restart. The course `run.sh` output is in the README.
+
+## 8. Assignment 2 split plan
+
+The cut runs along the `habits/public.py` seam:
+
+| Today (in-process call) | Assignment 2 (HTTP on the habits service) |
+|---|---|
+| `habit_exists(db, habit_id)` | `GET /habits/<id>` returning 200 or 404 |
+| `checkin_dates(db, habit_id, start, end)` | `GET /habits/<id>/checkins?start=&end=` |
+| `current_streak(db, habit_id, today)` | `GET /habits/<id>/streak` (already exists) |
+| `scheduled_weekdays(db, habit_id)` | Part of `GET /habits/<id>` |
+
+The habits service keeps `habits`, `checkins`, `habit_templates`, the dashboard, and the calendar. The insights service takes `insights/` and the `milestones` table into its own SQLite file. Because `milestones.habit_id` has no foreign key, that table can move without schema changes. The main new cost is network failure handling: insights must decide what to return when the habits service is down.
+
+## 9. Known limitations
+
+- Dates use the server's local date and reminders use the browser clock; there are no accounts or per-user time zones.
+- Reminders appear only while a dashboard tab is open (ADR-5).
+- Milestones are recorded when `/insights/<id>/summary` is requested, so a GET request writes data.
+- Deleting a habit leaves its `milestones` rows behind, because habits may not write to insights tables. They are never shown again.
+- `habits/streaks.py` (daily and weekly streaks) predates the per-weekday schedule and is now used only by its tests; `current_scheduled_streak` replaced it.
+- The Flask development server is used, which is acceptable for local Assignment 1 use but not for production traffic.
+
+## 10. AI disclosure and evidence
 
 The detailed, per-interaction log is in [AI_USAGE.md](./AI_USAGE.md).
 
 > I acknowledge the use of [AI SYSTEMS, e.g. Claude and Cursor] to [HOW YOU USED THEM, e.g. generate the initial Flask skeleton, implement scheduled streaks and reminders, and review the project against the assignment rules]. The prompts used include [2-3 REAL PROMPTS]. The output of these prompts was used to [WHAT YOU KEPT, CHANGED, OR REJECTED].
 
-## 8. Conclusion
+## 11. Conclusion
 
-The project successfully demonstrates a minimal but honest implementation of a Flask + SQLite habit tracker with a clean domain split, a narrow seam, idempotent data loading, and a testable business-logic layer. It remains aligned with the assignment constraints and is ready for final human review and final git-based handoff.
+HabitTracker is a single-process Flask and SQLite app with two domains split at a narrow seam, idempotent startup and seeding, and 95% test coverage. Users can schedule habits on chosen weekdays, see them on a monthly calendar and an hourly timeline, check them off, and delete them. The insights domain reports schedule-aware completion rates, best weekdays, and streak milestones without touching habits storage. The commit-cadence requirement was not met because of the late start, and the container checker still has to be run on a machine with Docker.
