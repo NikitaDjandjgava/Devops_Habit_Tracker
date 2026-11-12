@@ -30,8 +30,15 @@ If PowerShell refuses to run `Activate.ps1`, skip activation and call the venv d
 Open `http://127.0.0.1:8000/` for the Today dashboard (with an hourly timeline) or `http://127.0.0.1:8000/calendar` for the month view. Add a habit, select its weekdays, time, and alert, then mark it complete on scheduled days. The JSON API remains available for other clients. Seeded habit templates remain accessible through the API for compatibility but are not presented in the dashboard.
 
 ## Run in Docker
-    docker build -t habit-tracker .
-    docker run -p 8000:8000 -v habit-data:/data -e DATA_DIR=/data habit-tracker
+Copy `.env.example` to `.env`, then run:
+
+    Copy-Item .env.example .env
+    docker compose up --build
+
+Open `http://localhost:8000/`. The `habit-data` volume keeps the SQLite database
+when containers are recreated. Stop the app with `docker compose down`; remove
+the database volume as well with `docker compose down -v`. To follow logs, run
+`docker compose logs -f habit-tracker`.
 
 ## Environment variables
 | Variable | Default | Meaning |
