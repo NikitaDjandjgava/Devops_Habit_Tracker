@@ -1,16 +1,77 @@
 services:
-  habit-tracker:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in a local .env file}"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\""]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in a local .env file}"
+      HABITS_DB_PASSWORD: "${HABITS_DB_PASSWORD:?Set HABITS_DB_PASSWORD in a local .env file}"
+      INSIGHTS_DB_PASSWORD: "${INSIGHTS_DB_PASSWORD:?Set INSIGHTS_DB_PASSWORD in a local .env file}"
+    volumes:
+      - ./db/init.sql:/init.sql:ro
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -v HABITS_DB_PASSWORD="$$HABITS_DB_PASSWORD" INSIGHTS_DB_PASSWORD="$$INSIGHTS_DB_PASSWORD" -i /init.sql
+
+  habits:
     build:
       context: .
-      dockerfile: Dockerfile
-    ports:
-      - "${PORT:-8000}:${PORT:-8000}"
+      dockerfile: services/habits/Dockerfile
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
     environment:
-      PORT: "${PORT:-8000}"
-      DATA_DIR: /data
-      FLASK_SECRET_KEY: "${FLASK_SECRET_KEY:-}"
+      DATABASE_URL: "mssql://habits_login:${HABITS_DB_PASSWORD:?Set HABITS_DB_PASSWORD in a local .env file}@sqlserver:1433/habits_db?encrypt=false"
+      PORT: "8000"
+      UI_ORIGIN: "http://localhost:8080"
+      GIT_SHA: "${GIT_SHA:-local}"
+    ports:
+      - "8001:8000"
+
+  insights:
+    build:
+      context: .
+      dockerfile: services/insights/Dockerfile
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: "mssql://insights_login:${INSIGHTS_DB_PASSWORD:?Set INSIGHTS_DB_PASSWORD in a local .env file}@sqlserver:1433/insights_db?encrypt=false"
+      HABITS_URL: "http://habits:8000"
+      HABITS_TIMEOUT_S: "5"
+      PORT: "8000"
+      UI_ORIGIN: "http://localhost:8080"
+      GIT_SHA: "${GIT_SHA:-local}"
+    ports:
+      - "8002:8000"
+
+  ui:
+    image: nginx:1.27-alpine
+    depends_on:
+      - habits
+      - insights
     volumes:
-      - habit-data:/data
+      - ./ui:/usr/share/nginx/html:ro
+    ports:
+      - "8080:80"
 
 volumes:
-  habit-data:
+  sqlserver-data:
