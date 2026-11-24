@@ -1,0 +1,39 @@
+body {
+  margin: 0;
+  background: #f3f6fa;
+  color: #172033;
+  font-family: Arial, sans-serif;
+}
+
+main {
+  max-width: 700px;
+  margin: 40px auto;
+  padding: 24px;
+  background: white;
+  border-radius: 12px;
+}
+
+form {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+}
+
+input,
+select,
+button {
+  padding: 10px;
+  font: inherit;
+}
+
+.habit {
+  border: 1px solid #dce3ec;
+  border-radius: 8px;
+  margin: 8px 0;
+  padding: 12px;
+}

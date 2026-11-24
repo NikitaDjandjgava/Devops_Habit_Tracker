@@ -10,4 +10,6 @@ data/
 .env
 PROJECT_STATE.md
 run-output.txt
+.env
 RULES.md
+IMPLEMENTATION_DECISION_RECORD.txt

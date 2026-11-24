@@ -1,0 +1,57 @@
+openapi: 3.0.3
+info:
+  title: Insights Service
+  version: "1.0.0"
+paths:
+  /health:
+    get:
+      responses:
+        "200":
+          description: Healthy
+        "503":
+          description: Database unavailable
+  /insights/{habit_id}/weekly:
+    get:
+      parameters:
+        - name: habit_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Weekly statistics
+        "404":
+          description: Habit not found
+        "503":
+          description: Habits service unavailable
+  /insights/{habit_id}/milestones:
+    get:
+      parameters:
+        - name: habit_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Milestones
+        "404":
+          description: Habit not found
+        "503":
+          description: Habits service unavailable
+  /insights/{habit_id}/summary:
+    get:
+      parameters:
+        - name: habit_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Habit summary
+        "404":
+          description: Habit not found
+        "503":
+          description: Habits service unavailable

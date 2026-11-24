@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["name", "services", "ui", "azure"],
+  "properties": {
+    "name": {"type": "string"},
+    "services": {"type": "array", "items": {"type": "object"}},
+    "ui": {"type": "object"},
+    "azure": {"type": "object"}
+  },
+  "additionalProperties": true
+}
