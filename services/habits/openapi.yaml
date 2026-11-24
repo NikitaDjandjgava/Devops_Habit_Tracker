@@ -1,0 +1,74 @@
+openapi: 3.0.3
+info:
+  title: Habits Service
+  version: "1.0.0"
+paths:
+  /health:
+    get:
+      responses:
+        "200":
+          description: Healthy
+        "503":
+          description: Database unavailable
+  /habits:
+    get:
+      responses:
+        "200":
+          description: Habits
+    post:
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Invalid input
+  /habits/templates:
+    get:
+      responses:
+        "200":
+          description: Templates
+  /habits/{habit_id}:
+    delete:
+      parameters:
+        - name: habit_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+  /habits/{habit_id}/checkins:
+    post:
+      parameters:
+        - name: habit_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Check-in recorded
+        "404":
+          description: Habit not found
+  /habits/{habit_id}/public:
+    get:
+      parameters:
+        - name: habit_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Minimal cross-service habit data
+        "404":
+          description: Habit not found
+        "503":
+          description: Service unavailable
+  /habits/reminders:
+    get:
+      responses:
+        "200":
+          description: Due reminders
