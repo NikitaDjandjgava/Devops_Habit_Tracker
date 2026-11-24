@@ -56,3 +56,93 @@ def test_due_reminder_handles_alert_before_midnight_for_next_day() -> None:
         "checkin_dates": [],
     }
     assert due_reminders([habit], now)[0]["date"] == (now.date() + timedelta(days=1)).isoformat()
+
+
+def test_parse_schedule_supports_defaults_and_valid_alert_modes() -> None:
+    assert parse_schedule({"cadence": "daily"}) == {
+        "days_of_week": [0, 1, 2, 3, 4, 5, 6],
+        "time_of_day": "09:00",
+        "alert_type": "at_time",
+        "alert_offset_minutes": 0,
+    }
+    assert parse_schedule({"cadence": "weekly"})["alert_offset_minutes"] == 0
+    assert parse_schedule(
+        {
+            "days_of_week": [1],
+            "alert_type": "15_before",
+        }
+    )["alert_offset_minutes"] == 15
+    assert parse_schedule(
+        {
+            "days_of_week": [1],
+            "alert_type": "custom",
+            "alert_amount": 30,
+            "alert_unit": "minutes",
+        }
+    )["alert_offset_minutes"] == 30
+
+
+def test_parse_schedule_rejects_invalid_defaults_times_and_alerts() -> None:
+    assert parse_schedule({"cadence": "monthly"}) is None
+    assert parse_schedule({"days_of_week": "1,2"}) is None
+    assert parse_schedule({"days_of_week": []}) is None
+    assert parse_schedule({"days_of_week": [1], "time_of_day": 900}) is None
+    assert parse_schedule({"days_of_week": [1], "time_of_day": "25:00"}) is None
+    assert parse_schedule({"days_of_week": [1], "time_of_day": "9:00"}) is None
+    assert parse_schedule({"days_of_week": [1], "time_of_day": "09:00:00"}) is None
+    assert parse_schedule(
+        {"days_of_week": [1], "alert_type": "custom", "alert_amount": True}
+    ) is None
+    assert parse_schedule(
+        {
+            "days_of_week": [1],
+            "alert_type": "custom",
+            "alert_amount": 1500,
+            "alert_unit": "minutes",
+        }
+    ) is None
+    assert parse_schedule(
+        {
+            "days_of_week": [1],
+            "alert_type": "custom",
+            "alert_amount": 25,
+            "alert_unit": "hours",
+        }
+    ) is None
+    assert parse_schedule({"days_of_week": [1], "alert_type": "email"}) is None
+
+
+def test_scheduled_streak_handles_empty_or_unmatched_schedules() -> None:
+    today = date(2026, 10, 12)
+    assert current_scheduled_streak([], [0, 1, 2], today) == 0
+    assert current_scheduled_streak([today], [], today) == 0
+    assert current_scheduled_streak([today], [1], today) == 0
+    assert current_scheduled_streak([date(2026, 10, 11)], [0], today) == 0
+
+
+def test_due_reminders_skips_invalid_habits_and_unscheduled_dates() -> None:
+    now = datetime(2026, 10, 12, 9, 0)
+    invalid_habits = [
+        {
+            "id": 1,
+            "days_of_week": "0",
+            "time_of_day": "09:00",
+            "alert_offset_minutes": 0,
+            "checkin_dates": [],
+        },
+        {
+            "id": 2,
+            "days_of_week": [0],
+            "time_of_day": "09:00",
+            "alert_offset_minutes": "0",
+            "checkin_dates": [],
+        },
+        {
+            "id": 3,
+            "days_of_week": [1],
+            "time_of_day": "09:00",
+            "alert_offset_minutes": 0,
+            "checkin_dates": [],
+        },
+    ]
+    assert due_reminders(invalid_habits, now) == []
