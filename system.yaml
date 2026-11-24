@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=./system.schema.json
+name: devops-habit-tracker
+services:
+  - name: habits
+    port: 8000
+    database: habits_db
+    env:
+      DATABASE_URL:
+        secret: true
+      PORT:
+        default: "8000"
+      UI_ORIGIN:
+        default: "http://localhost:8080"
+      GIT_SHA:
+        default: "local"
+    calls: []
+  - name: insights
+    port: 8000
+    database: insights_db
+    env:
+      DATABASE_URL:
+        secret: true
+      HABITS_URL:
+        default: "http://habits:8000"
+      HABITS_TIMEOUT_S:
+        default: "5"
+      PORT:
+        default: "8000"
+      UI_ORIGIN:
+        default: "http://localhost:8080"
+      GIT_SHA:
+        default: "local"
+    calls:
+      - service: habits
+        path: /habits/{habit_id}/public
+        timeout_env: HABITS_TIMEOUT_S
+ui:
+  kind: static
+  calls:
+    - habits
+    - insights
+azure:
+  container_apps:
+    - habits
+    - insights
+  databases:
+    - habits_db
+    - insights_db
